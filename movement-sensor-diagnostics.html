@@ -17,7 +17,7 @@
     if (new URLSearchParams(location.search).get('mode') !== 'sensor') {
       ['https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js',
        'https://cdn.jsdelivr.net/npm/@mediapipe/holistic/holistic.js'].forEach(src => {
-        const s = document.createElement('script'); s.src = src; document.head.appendChild(s);
+        const s = document.createElement('script'); s.src = src; s.async = false; document.head.appendChild(s);
       });
     }
   </script>
@@ -92,7 +92,7 @@
   function renderPairing(){const defaultRelay=PUBLIC_BASE.replace('https://','wss://').replace('http://','ws://');const stored=localStorage.getItem('movement-relay')||query.get('relay')||defaultRelay;$('relay-url').value=stored;$('pairing-actions').innerHTML=pair.mode==='camera'?'<button id="connect-relay">Connect camera station</button><button class="secondary" id="copy-pair">Copy L5 sensor link</button>':'<button id="connect-relay">Connect L5 sensor</button>'; $('pairing-detail').textContent=pair.mode==='camera'?`Session ${pair.session}: copy the link (or scan the QR) on the L5 phone after connecting your relay.`:'This phone streams motion samples to the paired camera station.';$('connect-relay').onclick=connectRelay;if(pair.mode==='camera'){$('copy-pair').onclick=()=>navigator.clipboard.writeText(pairingLink()).then(()=>{$('pairing-detail').textContent='Sensor link copied. Open it on the L5 phone.';});$('relay-url').addEventListener('input',updateQr);updateQr();}}
   const baseline = [], poseBaseline = [];
   function log(message, kind='') { const line = `[${new Date().toLocaleTimeString()}] ${message}`; logNode.textContent = line + '\n' + logNode.textContent; console.log(line); if (kind) console[kind](line); }
-  function row(label, value, cls='') { const dt=document.createElement('dt'), dd=document.createElement('dd'); dt.textContent=label; dd.textContent=value; if(cls) dd.className=cls; envNode.append(dt,dd); }
+  function row(label, value, cls='') { const dt=document.createElement('dt'), dd=document.createElement('dd'); dt.textContent=label; dd.textContent=value; if(cls) dd.className=cls; envNode.append(dt,dd); return dd; }
   function isIOSWebView() { const ua=navigator.userAgent; return /iP(hone|ad|od)/.test(ua) && /AppleWebKit/.test(ua) && !/Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS/.test(ua); }
   function visual(c) { const eyes=c.closed?'<path d="M103 35l14 0" stroke="#9ad6cd" stroke-width="3"/><path d="M134 35l14 0" stroke="#9ad6cd" stroke-width="3"/>':'<circle cx="110" cy="35" r="3" fill="#9ad6cd"/><circle cx="141" cy="35" r="3" fill="#9ad6cd"/>'; const legs=c.single?'<path d="M118 86v18"/><path d="M135 86l14 12"/><path d="M101 104h34"/>':'<path d="M118 86v18"/><path d="M135 86v18"/><path d="M103 104h48"/>'; return `<svg viewBox="0 0 240 112" aria-hidden="true"><circle cx="127" cy="35" r="22" fill="none" stroke="#d9fff3" stroke-width="3"/>${eyes}<path d="M127 57v29M99 68l28 8 28-8" fill="none" stroke="#d9fff3" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>${legs}</svg>`; }
   function active() { return conditions.find(c=>c.id===activeCondition); }
@@ -110,7 +110,7 @@
     const policy = document.permissionsPolicy || document.featurePolicy;
     row('Camera policy (if exposed)', policy ? String(policy.allowsFeature('camera')) : 'Browser does not expose this diagnostic', policy && !policy.allowsFeature('camera')?'bad':'');
     if (navigator.permissions?.query) try { const p=await navigator.permissions.query({name:'camera'}); row('Camera permission state', p.state, p.state==='denied'?'bad':p.state==='granted'?'ok':'warn'); p.onchange=()=>log(`Camera permission changed to ${p.state}`); } catch { row('Camera permission state', 'Not queryable in this browser'); }
-    if (pair.mode==='camera') row('Pose tracker (MediaPipe)', typeof Holistic==='undefined'?'Loading…':'Loaded', typeof Holistic==='undefined'?'warn':'ok');
+    if (pair.mode==='camera') { const trackerDd=row('Pose tracker (MediaPipe)', typeof Holistic==='undefined'?'Loading…':'Loaded', typeof Holistic==='undefined'?'warn':'ok'); if (typeof Holistic==='undefined') waitForHolistic(15000).then(ready=>{ trackerDd.textContent=ready?'Loaded':'Failed to load (check internet connection)'; trackerDd.className=ready?'ok':'bad'; }); }
   }
   function drawGauge() { const c=$('gauge').getContext('2d'), w=320, value=Math.max(0,Math.min(100,100-(cameraScore*.55+imuScore*.45))); c.clearRect(0,0,w,w); c.lineWidth=22; c.strokeStyle='#354151'; c.beginPath(); c.arc(160,160,110,0,Math.PI*2); c.stroke(); c.strokeStyle=value>70?'#63d6a3':value>45?'#ffc66d':'#ff8484'; c.beginPath(); c.arc(160,160,110,-Math.PI/2,-Math.PI/2+Math.PI*2*(value/100)); c.stroke(); c.fillStyle='#f2f6fa'; c.font='bold 50px system-ui'; c.textAlign='center'; c.fillText(Math.round(value),160,176); c.fillStyle='#aab6c5'; c.font='16px system-ui'; c.fillText('stability',160,204); requestAnimationFrame(drawGauge); }
   function poseDeg(r) { return r*180/Math.PI; }

@@ -148,6 +148,7 @@
   };
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
   renderPairing(); renderConditions(); renderSummary(); diagnostics(); drawGauge(); setupInstall();
+  if ($('relay-url').value.trim()) connectRelay();
 })();
 </script>
 </body>

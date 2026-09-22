@@ -2,6 +2,14 @@ const { app, BrowserWindow, session } = require('electron');
 const path = require('path');
 const { startLocalServer } = require('./local-server');
 
+// Only for dev-testing under WSLg (virtual GPU + kernel sandbox quirks),
+// never set in the packaged app, so real Windows/Mac users keep normal
+// hardware acceleration and OS-level sandboxing.
+if (process.env.MOTION_LAB_SOFTWARE_RENDER) {
+  app.disableHardwareAcceleration();
+  app.commandLine.appendSwitch('no-sandbox');
+}
+
 let serverInfo;
 
 function createWindow() {
@@ -16,7 +24,7 @@ function createWindow() {
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: true,
+      sandbox: !process.env.MOTION_LAB_SOFTWARE_RENDER,
     },
   });
 

@@ -4,7 +4,7 @@ const { WebSocketServer, WebSocket } = require('ws');
 
 const app = express();
 app.get('/healthz', (_request, response) => response.json({ ok: true }));
-app.get('/', (_request, response) => response.type('text').send('Movement Sensor Relay is running.'));
+app.use(express.static(__dirname));
 
 const server = http.createServer(app);
 const websocketServer = new WebSocketServer({ server });

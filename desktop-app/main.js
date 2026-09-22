@@ -22,9 +22,9 @@ function createWindow() {
 
   window.setMenuBarVisibility(false);
   // Load via localhost so the page is a secure context (camera/getUserMedia
-  // requires that) while still telling the page its LAN address, via the
-  // ?lan= param, so it can build a phone-reachable pairing link.
-  window.loadURL(`http://localhost:${serverInfo.port}/movement-sensor-diagnostics.html?lan=${serverInfo.lan}`);
+  // requires that). Phone pairing now goes through the hosted Render relay,
+  // not this local server, so no LAN address needs to be threaded through.
+  window.loadURL(`http://localhost:${serverInfo.port}/movement-sensor-diagnostics.html`);
 }
 
 app.whenReady().then(async () => {

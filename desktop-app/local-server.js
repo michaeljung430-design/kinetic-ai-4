@@ -60,7 +60,9 @@ function attachRelay(server) {
       if (message.type === 'join') {
         if (!['camera', 'sensor'].includes(message.role)) { send(socket, { type: 'error', message: 'Invalid device role.' }); return; }
         session = message.session; role = message.role;
+        socket.role = role;
         const room = roomFor(rooms, session);
+        for (const peer of room) send(socket, { type: 'peer', role: peer.role, connected: true });
         room.add(socket);
         send(socket, { type: 'joined', session, role });
         for (const peer of room) if (peer !== socket) send(peer, { type: 'peer', role, connected: true });

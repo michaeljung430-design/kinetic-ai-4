@@ -63,7 +63,11 @@ websocketServer.on('connection', socket => {
       }
       session = message.session;
       role = message.role;
+      socket.role = role;
       const room = roomFor(session);
+      // Tell the new joiner about everyone already in the room (it would
+      // otherwise never learn about a peer that connected before it did).
+      for (const peer of room) send(socket, { type: 'peer', role: peer.role, connected: true });
       room.add(socket);
       send(socket, { type: 'joined', session, role });
       for (const peer of room) if (peer !== socket) send(peer, { type: 'peer', role, connected: true });

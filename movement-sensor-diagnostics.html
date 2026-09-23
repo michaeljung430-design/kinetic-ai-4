@@ -94,7 +94,13 @@
   let phoneSampleBuffer = [], cameraFrameBuffer = [], lastPhoneSampleAt = 0, currentAssessment = null;
   let latestOrientation = { roll: null, pitch: null, yaw: null };
   window.addEventListener('deviceorientation', e => { latestOrientation = { roll: e.gamma ?? null, pitch: e.beta ?? null, yaw: e.alpha ?? null }; });
-  const query=new URLSearchParams(location.search), pair={mode:query.get('mode')==='sensor'?'sensor':'camera',session:query.get('session')||crypto.randomUUID().slice(0,8),socket:null,remoteRecording:false,remoteSamples:[],peer:false};
+  const query=new URLSearchParams(location.search);
+  const isCameraRole=query.get('mode')!=='sensor';
+  let sessionId=query.get('session');
+  if (!sessionId && isCameraRole) { try { sessionId=localStorage.getItem('movement-session'); } catch {} }
+  if (!sessionId) sessionId=crypto.randomUUID().slice(0,8);
+  if (isCameraRole) { try { localStorage.setItem('movement-session', sessionId); } catch {} }
+  const pair={mode:isCameraRole?'camera':'sensor',session:sessionId,socket:null,remoteRecording:false,remoteSamples:[],peer:false};
   const PUBLIC_BASE='https://kinetic-ai-4.onrender.com';
   function pairingLink(){const relay=encodeURIComponent($('relay-url').value.trim());return `${PUBLIC_BASE}/movement-sensor-diagnostics.html?mode=sensor&session=${pair.session}&relay=${relay}`;}
   function updateQr(){const wrap=$('pair-qr-wrap'),box=$('pair-qr');if(!wrap||!box||pair.mode!=='camera')return;const link=pairingLink();if(!$('relay-url').value.trim()){wrap.style.display='none';return;}try{const qr=qrcode(0,'M');qr.addData(link);qr.make();box.innerHTML=qr.createSvgTag({cellSize:4,margin:8});wrap.style.display='block';}catch(error){log(`QR generation failed — ${error.message}`,'warn');wrap.style.display='none';}}

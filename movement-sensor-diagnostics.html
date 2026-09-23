@@ -53,19 +53,19 @@
     <div class="stage"><video id="preview" playsinline muted autoplay></video><canvas id="overlay"></canvas></div>
     <dl><dt>Tracker</dt><dd id="tracked">Waiting</dd><dt>Trunk lean</dt><dd id="trunk">—</dd><dt>Pelvic tilt</dt><dd id="pelvis">—</dd><dt>Knee angles</dt><dd id="knees">—</dd></dl>
     <p id="form-result" class="live-pill" style="display:none"></p>
+    <div id="active-trial-panel" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line)">
+      <strong id="active-trial-title">Trial</strong>
+      <p id="active-trial-instruction"></p>
+      <dl><dt>Camera</dt><dd id="check-camera">Checking…</dd><dt>iPhone sensor</dt><dd id="check-phone">Checking…</dd><dt>Full body in frame</dt><dd id="check-body">Checking…</dd></dl>
+      <button id="start-trial-button" disabled>Start trial</button>
+      <p id="trial-countdown" style="display:none"></p>
+      <p id="trial-live-status" class="live-pill" style="display:none"></p>
+    </div>
   </section>
   <section class="card">
     <strong>Phone motion</strong>
     <p id="motion-status">Place the phone vertically at the lower back (L5), then enable the sensor.</p>
     <button id="motion-button">Enable motion sensor</button>
-  </section>
-  <section class="card" id="active-trial-card" style="display:none">
-    <strong id="active-trial-title">Trial</strong>
-    <p id="active-trial-instruction"></p>
-    <dl><dt>Camera</dt><dd id="check-camera">Checking…</dd><dt>iPhone sensor</dt><dd id="check-phone">Checking…</dd><dt>Full body in frame</dt><dd id="check-body">Checking…</dd></dl>
-    <button id="start-trial-button" disabled>Start trial</button><button class="secondary" id="cancel-trial-button">Back to checklist</button>
-    <p id="trial-countdown" style="display:none"></p>
-    <p id="trial-live-status" class="live-pill" style="display:none"></p>
   </section>
   <section class="card" id="assessment-results-card" style="display:none">
     <strong>Assessment Results</strong>
@@ -192,42 +192,49 @@
     clearInterval(countdownTimer); clearInterval(readinessPoll);
     activeTrialId=trialName;
     const trial=Assessment.TRIALS.find(t=>t.trial_name===trialName);
-    $('active-trial-card').style.display='block';
     $('active-trial-title').textContent=trial.label;
     $('active-trial-instruction').textContent=trial.instruction;
     $('trial-countdown').style.display='none';
     $('trial-live-status').style.display='none';
     $('start-trial-button').disabled=true;
     $('start-trial-button').textContent='Start trial';
-    $('cancel-trial-button').style.display='inline-block';
     renderChecklist();
     startReadinessPolling();
-    $('active-trial-card').scrollIntoView({behavior:'smooth',block:'start'});
+  }
+  function selectNextIncompleteTrial() {
+    const doneNames=completedTrialNames();
+    const next=Assessment.TRIALS.find(t=>!doneNames.includes(t.trial_name));
+    if (next) { selectTrial(next.trial_name); return; }
+    activeTrialId=null; clearInterval(readinessPoll);
+    $('active-trial-title').textContent='All trials complete';
+    $('active-trial-instruction').textContent='';
+    $('start-trial-button').disabled=true;
+  }
+  function checkReadinessNow() {
+    const cameraOk=!!stream;
+    const phoneOk=!!pair.peer && (Date.now()-lastPhoneSampleAt<4000);
+    const namedLandmarks=landmarks ? Assessment.captureLandmarkFrame(landmarks,0).landmarks : null;
+    const bodyOk=Assessment.fullBodyInFrame(namedLandmarks);
+    return {cameraOk,phoneOk,bodyOk};
+  }
+  function updateReadinessDisplay(r) {
+    $('check-camera').textContent=r.cameraOk?'Ready':'Enable the front camera first';
+    $('check-camera').className=r.cameraOk?'ok':'bad';
+    $('check-phone').textContent=r.phoneOk?'Connected & sending data':'Waiting for the iPhone sensor…';
+    $('check-phone').className=r.phoneOk?'ok':'bad';
+    $('check-body').textContent=r.bodyOk?'Full body visible':'Step back so your whole body is in frame';
+    $('check-body').className=r.bodyOk?'ok':'warn';
+    $('start-trial-button').disabled=!(r.cameraOk&&r.phoneOk&&r.bodyOk);
   }
   function startReadinessPolling() {
     if (readinessPoll) clearInterval(readinessPoll);
-    const check=() => {
-      if (trialRecording) return;
-      const cameraOk=!!stream;
-      const phoneOk=!!pair.peer && (Date.now()-lastPhoneSampleAt<4000);
-      const namedLandmarks=landmarks ? Assessment.captureLandmarkFrame(landmarks,0).landmarks : null;
-      const bodyOk=Assessment.fullBodyInFrame(namedLandmarks);
-      $('check-camera').textContent=cameraOk?'Ready':'Enable the front camera first';
-      $('check-camera').className=cameraOk?'ok':'bad';
-      $('check-phone').textContent=phoneOk?'Connected & sending data':'Waiting for the iPhone sensor…';
-      $('check-phone').className=phoneOk?'ok':'bad';
-      $('check-body').textContent=bodyOk?'Full body visible':'Step back so your whole body is in frame';
-      $('check-body').className=bodyOk?'ok':'warn';
-      $('start-trial-button').disabled=!(cameraOk&&phoneOk&&bodyOk);
-    };
+    const check=() => { if (trialRecording) return; updateReadinessDisplay(checkReadinessNow()); };
     check();
     readinessPoll=setInterval(check,400);
   }
   $('start-trial-button').onclick=()=>{ clearInterval(readinessPoll); runCountdown(); };
-  $('cancel-trial-button').onclick=()=>{ clearInterval(readinessPoll); activeTrialId=null; $('active-trial-card').style.display='none'; renderChecklist(); };
   function runCountdown() {
     $('start-trial-button').disabled=true;
-    $('cancel-trial-button').style.display='none';
     try { audioContext ||= new (window.AudioContext||window.webkitAudioContext)(); audioContext.resume?.(); } catch {}
     let n=3;
     $('trial-countdown').style.display='block';
@@ -236,6 +243,15 @@
       n--;
       if (n>0) { $('trial-countdown').textContent=n; return; }
       clearInterval(countdownTimer);
+      const r=checkReadinessNow();
+      if (!(r.cameraOk&&r.phoneOk&&r.bodyOk)) {
+        $('trial-countdown').style.display='none';
+        $('trial-live-status').style.display='block';
+        $('trial-live-status').textContent = !r.bodyOk ? 'Trial cancelled: full body was not in frame when the countdown ended. Step back and try again.' : !r.phoneOk ? 'Trial cancelled: the iPhone sensor disconnected. Reconnect and try again.' : 'Trial cancelled: the camera became unavailable.';
+        log('Trial cancelled at countdown end — readiness check failed.','warn');
+        startReadinessPolling();
+        return;
+      }
       beginTrialRecording();
     },800);
   }
@@ -267,7 +283,7 @@
     log(`Trial complete: ${trial.trial_name}. ${cameraFrameBuffer.length} camera frames, ${phoneSampleBuffer.length} phone samples.`);
     completionTone();
     activeTrialId=null;
-    setTimeout(()=>{ $('active-trial-card').style.display='none'; renderChecklist(); },1200);
+    setTimeout(()=>{ renderChecklist(); selectNextIncompleteTrial(); },1200);
   }
   function renderComparisons(comparisons) {
     const el=document.createElement('div');
@@ -321,7 +337,7 @@
     deferredInstall = null; $('install-button').style.display = 'none';
   };
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
-  if (pair.mode!=='camera') { const cc=$('checklist-card'); if (cc) cc.style.display='none'; } else { currentAssessment=loadAssessment(); renderChecklist(); }
+  if (pair.mode!=='camera') { const cc=$('checklist-card'); if (cc) cc.style.display='none'; } else { currentAssessment=loadAssessment(); renderChecklist(); selectNextIncompleteTrial(); }
   renderPairing(); diagnostics(); drawGauge(); setupInstall();
   if ($('relay-url').value.trim()) connectRelay();
 })();

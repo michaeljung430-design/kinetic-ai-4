@@ -3,6 +3,8 @@ const ASSETS = [
   './',
   './index.html',
   './movement-sensor-diagnostics.html',
+  './qrcode.js',
+  './assessment.js',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',

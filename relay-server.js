@@ -1,9 +1,24 @@
 const express = require('express');
 const http = require('http');
 const { WebSocketServer, WebSocket } = require('ws');
+const { analyzeAssessment } = require('./ai-analysis');
 
 const app = express();
 app.get('/healthz', (_request, response) => response.json({ ok: true }));
+app.use(express.json({ limit: '10mb' }));
+app.post('/api/analyze', async (request, response) => {
+  const assessment = request.body;
+  if (!assessment || !Array.isArray(assessment.trials)) {
+    return response.status(400).json({ error: 'Request body must be a completed assessment JSON with a trials array.' });
+  }
+  try {
+    const result = await analyzeAssessment(assessment);
+    response.json(result);
+  } catch (error) {
+    console.error('AI analysis failed:', error.message);
+    response.status(error.status || 502).json({ error: error.message || 'AI analysis failed.' });
+  }
+});
 app.use(express.static(__dirname));
 
 const server = http.createServer(app);

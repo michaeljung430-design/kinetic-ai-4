@@ -39,7 +39,7 @@
       "createDesktopShortcut": true
     },
     "mac": {
-      "target": "dmg",
+      "target": "zip",
       "icon": "build/icon.icns",
       "category": "public.app-category.healthcare-fitness"
     }

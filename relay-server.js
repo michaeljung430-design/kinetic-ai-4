@@ -6,6 +6,17 @@ const { analyzeAssessment } = require('./ai-analysis');
 const app = express();
 app.get('/healthz', (_request, response) => response.json({ ok: true }));
 app.use(express.json({ limit: '10mb' }));
+// The desktop app loads its page from a local http://localhost server (for
+// camera secure-context reasons) but must still reach this Render-hosted
+// endpoint, making this a cross-origin request -- so it needs CORS headers.
+// No cookies/credentials are involved, so an open origin is fine here.
+app.use('/api/analyze', (_request, response, next) => {
+  response.header('Access-Control-Allow-Origin', '*');
+  response.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  response.header('Access-Control-Allow-Headers', 'Content-Type');
+  next();
+});
+app.options('/api/analyze', (_request, response) => response.sendStatus(204));
 app.post('/api/analyze', async (request, response) => {
   const assessment = request.body;
   if (!assessment || !Array.isArray(assessment.trials)) {

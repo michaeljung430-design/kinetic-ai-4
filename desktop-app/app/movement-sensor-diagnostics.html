@@ -472,7 +472,7 @@
     const assessmentJson=Assessment.buildAssessmentJSON({assessmentId:currentAssessment.assessment_id,patientId:null,date:currentAssessment.date,assessmentNumber:loadHistory().length+1,trials});
     renderComparisons(assessmentJson.comparisons);
     try {
-      const response=await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(assessmentJson)});
+      const response=await fetch(`${PUBLIC_BASE}/api/analyze`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(assessmentJson)});
       if (!response.ok) throw new Error(`Server responded ${response.status}`);
       const analysis=await response.json();
       renderAnalysis(analysis);

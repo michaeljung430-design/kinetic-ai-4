@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <link rel="manifest" href="./manifest.json">
-  <meta name="theme-color" content="#07151a">
+  <meta name="theme-color" content="#0d5c56">
   <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -23,50 +23,156 @@
     }
   </script>
   <style>
-    :root { color-scheme:dark; --bg:#07151a; --card:#10262b; --ink:#f4fbf9; --muted:#a7c1bf; --ok:#70dfad; --warn:#ffc66d; --bad:#ff8e90; --accent:#77e0c1; --line:#285059; }
-    * { box-sizing:border-box } body { margin:0; background:radial-gradient(circle at 15% -10%,#164550 0,transparent 32rem),var(--bg); color:var(--ink); font:16px/1.45 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
-    main { max-width:760px; margin:auto; padding:26px 16px 48px; } h1 { margin:0 0 5px; font-size:1.9rem; letter-spacing:-.04em } p { color:var(--muted) } .eyebrow { color:var(--accent); font-size:.76rem; font-weight:800; letter-spacing:.12em; text-transform:uppercase; margin:0 0 4px } .card { background:linear-gradient(145deg,#15343a,#10262b); border:1px solid var(--line); border-radius:18px; padding:17px; margin:14px 0; box-shadow:0 16px 45px #0003; } button { appearance:none; border:0; border-radius:10px; color:#062018; background:var(--accent); font:700 15px inherit; padding:12px 15px; margin:4px 6px 4px 0; } button.secondary { background:#c9ddd9 } button:disabled { opacity:.45 } input { display:block;width:100%;margin:5px 0 7px;padding:11px;border:1px solid var(--line);border-radius:9px;background:#091b20;color:var(--ink);font:inherit } #gauge { display:block; margin:8px auto 0; width:160px; height:160px } dl { margin:0; display:grid; grid-template-columns:minmax(130px, 42%) 1fr; gap:7px 12px; } dt { color:var(--muted) } dd { margin:0; overflow-wrap:anywhere } .ok { color:var(--ok) } .warn { color:var(--warn) } .bad { color:var(--bad) } #log { white-space:pre-wrap; font:13px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace; max-height:310px; overflow:auto; color:#dce8f5 } code { font:13px ui-monospace,SFMono-Regular,Menlo,monospace } details { color:var(--muted) } summary { cursor:pointer; color:var(--ink) }.protocol-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}.condition{padding:0;overflow:hidden;text-align:left;background:#0d2126;color:var(--ink);border:1px solid var(--line);margin:0}.condition.selected{outline:2px solid var(--accent);border-color:var(--accent)}.condition.done{border-color:var(--ok)}.condition svg{width:100%;height:112px;display:block;background:linear-gradient(145deg,#1c4650,#102d34)}.condition .label{display:block;padding:10px 11px 2px;font-size:.88rem}.condition .count{display:block;padding:0 11px 10px;color:var(--muted);font-size:.78rem}.progress{height:7px;border-radius:99px;background:#23464d;overflow:hidden;margin:10px 0}.progress i{display:block;height:100%;border-radius:99px;background:var(--accent);transition:width .2s}.table-wrap{overflow-x:auto}.summary-table{border-collapse:collapse;width:100%;font-size:.84rem}.summary-table th,.summary-table td{padding:9px 7px;border-bottom:1px solid var(--line);text-align:left}.summary-table th{color:var(--muted);font-weight:600}.live-pill{display:inline-block;margin-top:8px;padding:5px 9px;border-radius:99px;background:#1d4c47;color:var(--accent);font-size:.8rem;font-weight:700}@media(max-width:430px){.protocol-grid{grid-template-columns:1fr}.condition svg{height:95px}}
-    .stage{position:relative;overflow:hidden;border-radius:12px;background:#05070a;margin-top:12px;aspect-ratio:4/3}.stage video,.stage canvas{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover}.stage canvas{pointer-events:none}
-    .trial-item{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:#0d2126;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:6px 0;color:var(--ink);font:inherit}.trial-item .check{font-size:1.15rem;color:var(--muted);width:1.2em}.trial-item.completed .check{color:var(--ok)}.trial-item.completed{border-color:var(--ok)}.trial-item .status{margin-left:auto;color:var(--muted);font-size:.82rem}.trial-item:disabled{opacity:.5;cursor:not-allowed}
-    #trial-countdown{font-size:2.6rem;font-weight:800;text-align:center;padding:10px 0}
+    :root { color-scheme:light; --bg:#f6f7f9; --card:#ffffff; --ink:#122033; --muted:#707c8c; --ok:#178a4c; --warn:#b5750a; --bad:#c22a2a; --accent:#0f9488; --accent-dark:#0d4f4a; --line:#e6e9ee; --chip-bg:#f1f3f6; }
+    * { box-sizing:border-box }
+    body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.45 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    main { max-width:920px; margin:auto; padding:22px 20px 48px; }
+    p { color:var(--muted) }
+    dl { margin:0; display:grid; grid-template-columns:minmax(130px, 42%) 1fr; gap:7px 12px; }
+    dt { color:var(--muted) } dd { margin:0; overflow-wrap:anywhere }
+    .ok { color:var(--ok) } .warn { color:var(--warn) } .bad { color:var(--bad) }
+    code { font:13px ui-monospace,SFMono-Regular,Menlo,monospace }
+    details { color:var(--muted) } summary { cursor:pointer; color:var(--ink) }
+    button { appearance:none; border:0; border-radius:10px; color:#fff; background:var(--accent-dark); font:700 15px inherit; padding:11px 16px; margin:0; cursor:pointer; }
+    button.secondary, button.outline { background:#fff; color:var(--ink); border:1.5px solid var(--line); }
+    button:disabled { opacity:.45; cursor:not-allowed }
+    input { display:block;width:100%;margin:5px 0 7px;padding:11px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--ink);font:inherit }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:18px; margin:14px 0; box-shadow:0 8px 24px #0000000a; }
+    #log { white-space:pre-wrap; font:13px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace; max-height:280px; overflow:auto; color:#3a4657; background:#fbfbfc; border-radius:10px; padding:10px }
+    .table-wrap{overflow-x:auto}.summary-table{border-collapse:collapse;width:100%;font-size:.84rem}.summary-table th,.summary-table td{padding:9px 7px;border-bottom:1px solid var(--line);text-align:left}.summary-table th{color:var(--muted);font-weight:600}
+    .live-pill{display:inline-block;margin-top:8px;padding:5px 10px;border-radius:99px;background:#eaf7f4;color:var(--accent-dark);font-size:.8rem;font-weight:700}
+    .progress{height:6px;border-radius:99px;background:var(--chip-bg);overflow:hidden;margin:8px 0 2px}.progress i{display:block;height:100%;border-radius:99px;background:var(--accent);transition:width .2s}
+
+    /* Header */
+    .topbar{display:flex;align-items:center;justify-content:space-between;padding:6px 4px 4px;flex-wrap:wrap;gap:10px}
+    .brand{display:flex;align-items:center;gap:10px}
+    .brand-name{font-size:1.35rem;font-weight:800;letter-spacing:-.02em;color:var(--ink)}
+    .brand-sub{color:var(--muted);font-size:.82rem;margin-top:-2px}
+    .topbar-right{display:flex;align-items:center;gap:12px}
+    .tagline{font-style:italic;color:var(--muted);font-size:.82rem;text-align:right;line-height:1.3}
+    .avatar{width:34px;height:34px;border-radius:50%;background:var(--chip-bg);display:flex;align-items:center;justify-content:center;flex:none}
+
+    /* Trial selector row */
+    #checklist-card{background:transparent;border:0;box-shadow:none;padding:6px 0 0;margin:6px 0 4px}
+    .trial-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+    .trial-item{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 8px 10px;background:#fff;border:1.5px solid var(--line);border-radius:14px;color:var(--ink);font:600 12.5px/1.25 inherit;text-align:center}
+    .trial-item .label{max-width:100%}
+    .trial-item.selected{border-color:var(--accent);background:#effaf8}
+    .trial-item.completed{border-color:var(--accent)}
+    .trial-item .check{position:absolute;top:7px;right:9px;color:var(--accent);font-weight:800;font-size:.85rem}
+    .trial-item:disabled{opacity:.5;cursor:not-allowed}
+    .progress-caption{margin:4px 2px 0;color:var(--muted);font-size:.82rem}
+    @media(max-width:620px){.trial-row{grid-template-columns:repeat(2,1fr)}}
+
+    /* Button row */
+    .button-row{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0 6px}
+    .button-row button{display:inline-flex;align-items:center;gap:8px}
+    .button-row.secondary-row{margin-top:0;margin-bottom:10px}
+    .button-row.secondary-row button{background:transparent;color:var(--muted);border:0;padding:4px 6px;font-size:.82rem;text-decoration:underline}
+    .status-line{margin:2px 2px 10px;font-size:.86rem}
+
+    /* Status chips */
+    .status-row{display:flex;gap:8px;flex-wrap:wrap;margin:10px 2px 4px}
+    .chip{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:99px;background:var(--chip-bg);font-size:.8rem;font-weight:600;color:var(--muted)}
+    .chip::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--muted)}
+    .chip.ok{background:#eaf7ef;color:var(--ok)}.chip.ok::before{background:var(--ok)}
+    .chip.bad{background:#fdecec;color:var(--bad)}.chip.bad::before{background:var(--bad)}
+    .chip.warn{background:#fdf3e3;color:var(--warn)}.chip.warn::before{background:var(--warn)}
+
+    /* Camera stage */
+    .stage-wrap{max-width:480px;margin:6px auto 0}
+    .stage{position:relative;overflow:hidden;border-radius:20px;background:#0c1116;aspect-ratio:3/3.3;box-shadow:0 12px 30px #00000014}
+    .stage video,.stage canvas{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover}
+    .stage canvas{pointer-events:none}
+    .timer-badge{position:absolute;top:14px;left:14px;display:flex;align-items:center;gap:6px;background:rgba(10,20,25,.72);color:#fff;padding:6px 12px 6px 10px;border-radius:99px;font-weight:800;font-size:.92rem;max-width:calc(100% - 28px)}
+    #trial-countdown,#trial-live-status{margin:0;color:#fff;font-size:inherit;font-weight:inherit;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .stage-caption{text-align:center;color:var(--muted);font-size:.86rem;margin:10px 4px 0}
+    .trial-eyebrow{text-align:center;color:var(--accent-dark);font-weight:700;font-size:.86rem;margin:0 0 2px}
+
+    /* Modal */
+    .modal-overlay{position:fixed;inset:0;background:#0d1a22b3;display:none;align-items:center;justify-content:center;padding:18px;z-index:50}
+    .modal-box{background:#fff;border-radius:18px;padding:22px;max-width:360px;width:100%;position:relative;box-shadow:0 20px 50px #00000030;text-align:center;max-height:88vh;overflow:auto}
+    .modal-box h3{margin:0 0 6px}
+    .modal-close{position:absolute;top:10px;right:12px;background:transparent;color:var(--muted);border:0;font-size:1.3rem;line-height:1;padding:4px;margin:0}
+    .qr-box{display:inline-block;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px;margin:6px 0}
+    .modal-hint{font-size:.82rem}
+    .modal-box label{font-size:.82rem;text-align:left;display:block;margin-top:10px}
+
+    @media(max-width:430px){.trial-row{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
 <main>
-  <p class="eyebrow">Guided balance assessment</p><h1>Movement Sensor Lab</h1>
-  <p>Six standardized 20-second balance trials, recorded together from the Mac camera and the paired iPhone sensor.</p>
-
-  <section class="card" id="checklist-card">
-    <strong>Balance Assessment — 6 Trials</strong>
-    <p id="assessment-progress-text">0/6 completed</p>
-    <div class="progress"><i id="assessment-progress-bar" style="width:0%"></i></div>
-    <div id="trial-checklist"></div>
-  </section>
-  <section class="card" id="install-card"><strong>Install as an app</strong><p id="install-status">Checking this browser…</p><button id="install-button" style="display:none">Install on this device</button></section>
-  <section class="card" id="pairing-card"><strong>Two-device pairing</strong><p id="pairing-status">Use a laptop/tablet as the camera station and the L5 phone as the wearable sensor.</p><label for="relay-url">Relay address</label><input id="relay-url" type="url" placeholder="wss://your-relay.example.com"><div id="pairing-actions"></div><p id="pairing-detail"></p><div id="pair-qr-wrap" style="display:none;text-align:center;margin-top:10px"><div id="pair-qr" style="display:inline-block;background:#fff;border-radius:10px;padding:8px"></div><p style="margin:6px 0 0;font-size:.82rem">Scan on the L5 phone to open the sensor link</p></div></section>
-
-  <section class="card"><strong>Environment</strong><dl id="environment"></dl></section>
-  <section class="card">
-    <strong>Camera &amp; body tracking</strong>
-    <p id="camera-status">Not requested.</p>
-    <button id="camera-button">Enable front camera</button><button class="secondary" id="stop-button">Stop camera</button><button class="secondary" id="form-button" disabled>Run posture/form baseline</button>
-    <div class="stage"><video id="preview" playsinline muted autoplay></video><canvas id="overlay"></canvas></div>
-    <dl><dt>Tracker</dt><dd id="tracked">Waiting</dd><dt>Trunk lean</dt><dd id="trunk">—</dd><dt>Pelvic tilt</dt><dd id="pelvis">—</dd><dt>Knee angles</dt><dd id="knees">—</dd></dl>
-    <p id="form-result" class="live-pill" style="display:none"></p>
-    <div id="active-trial-panel" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line)">
-      <strong id="active-trial-title">Trial</strong>
-      <p id="active-trial-instruction"></p>
-      <dl><dt>Camera</dt><dd id="check-camera">Checking…</dd><dt>iPhone sensor</dt><dd id="check-phone">Checking…</dd><dt>Full body in frame</dt><dd id="check-body">Checking…</dd></dl>
-      <button id="start-trial-button" disabled>Start trial</button>
-      <p id="trial-countdown" style="display:none"></p>
-      <p id="trial-live-status" class="live-pill" style="display:none"></p>
+  <header class="topbar">
+    <div class="brand">
+      <svg width="32" height="32" viewBox="0 0 34 34" aria-hidden="true"><circle cx="17" cy="7" r="3.2" fill="#0f9488"/><path d="M17 12v9M8 30l4.5-12 4.5 4v8M25.5 30 21 18l-4.5 4M9 16.5l8-4 8 4" stroke="#0f9488" stroke-width="2.1" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div><div class="brand-name">Swaymetry</div><div class="brand-sub">Balance assessment</div></div>
     </div>
+    <div class="topbar-right">
+      <span class="tagline">Steady today<br>for a stronger tomorrow</span>
+      <span class="avatar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8a94a6" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg></span>
+    </div>
+  </header>
+
+  <section id="checklist-card">
+    <div class="trial-row" id="trial-checklist"></div>
+    <p class="progress-caption"><span id="assessment-progress-text">0/6 completed</span></p>
+    <div class="progress" style="max-width:220px"><i id="assessment-progress-bar" style="width:0%"></i></div>
   </section>
-  <section class="card">
-    <strong>Phone motion</strong>
-    <p id="motion-status">Place the phone vertically at the lower back (L5), then enable the sensor.</p>
-    <button id="motion-button">Enable motion sensor</button>
-  </section>
+
+  <div class="button-row">
+    <button class="outline" id="camera-button"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h4l2-2h6l2 2h4v12H3z"/><circle cx="12" cy="13" r="3.2"/></svg>Enable camera</button>
+    <button class="outline" id="motion-button"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg>Enable phone motion</button>
+    <button id="start-trial-button" disabled><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>Start trial</button>
+  </div>
+  <div class="button-row secondary-row">
+    <button id="stop-button">Stop camera</button>
+    <button id="form-button" disabled>Run posture/form baseline</button>
+  </div>
+  <p id="camera-status" class="status-line">Not requested.</p>
+  <p id="motion-status" class="status-line">Place the phone vertically at the lower back (L5), then enable the sensor.</p>
+
+  <p class="trial-eyebrow" id="active-trial-title">Trial</p>
+  <div class="stage-wrap">
+    <div class="stage">
+      <video id="preview" playsinline muted autoplay></video>
+      <canvas id="overlay"></canvas>
+      <div class="timer-badge" id="timer-badge" style="display:none">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+        <span id="trial-countdown" style="display:none"></span>
+        <span id="trial-live-status" style="display:none"></span>
+      </div>
+    </div>
+    <p class="stage-caption" id="active-trial-instruction">Position yourself in the frame, standing upright and relaxed.</p>
+  </div>
+
+  <div class="status-row">
+    <span class="chip" id="check-camera">Checking…</span>
+    <span class="chip" id="check-phone">Checking…</span>
+    <span class="chip" id="check-body">Checking…</span>
+  </div>
+  <p id="form-result" class="live-pill" style="display:none"></p>
+
+  <!-- Phone-pairing QR modal, opened from "Enable phone motion" on the camera device -->
+  <div class="modal-overlay" id="qr-modal-overlay">
+    <div class="modal-box">
+      <button class="modal-close" id="qr-modal-close" aria-label="Close">&times;</button>
+      <h3>Connect the iPhone sensor</h3>
+      <p id="pairing-status">Use a laptop/tablet as the camera station and the iPhone as the wearable sensor.</p>
+      <div id="pair-qr-wrap" style="display:none">
+        <div class="qr-box" id="pair-qr"></div>
+        <p class="modal-hint">Scan with the iPhone camera to open the sensor link.</p>
+      </div>
+      <div id="pairing-actions"></div>
+      <label for="relay-url">Relay address</label>
+      <input id="relay-url" type="url" placeholder="wss://your-relay.example.com">
+      <p id="pairing-detail" style="font-size:.82rem"></p>
+    </div>
+  </div>
+
+  <section class="card" id="install-card" style="display:none"><strong>Install as an app</strong><p id="install-status">Checking this browser…</p><button class="outline" id="install-button" style="display:none">Install on this device</button></section>
+  <section class="card" style="display:none"><strong>Environment</strong><dl id="environment"></dl></section>
+  <section class="card"><dl><dt>Tracker</dt><dd id="tracked">Waiting</dd><dt>Trunk lean</dt><dd id="trunk">—</dd><dt>Pelvic tilt</dt><dd id="pelvis">—</dd><dt>Knee angles</dt><dd id="knees">—</dd></dl></section>
   <section class="card" id="assessment-results-card" style="display:none">
     <strong>Assessment Results</strong>
     <p id="results-status">Analyzing…</p>
@@ -79,7 +185,7 @@
   </section>
   <section class="card">
     <strong>Combined stability index</strong>
-    <canvas id="gauge" width="320" height="320"></canvas>
+    <canvas id="gauge" width="320" height="320" style="display:block;margin:8px auto 0;width:160px;height:160px"></canvas>
     <dl><dt>Camera sway (pose)</dt><dd id="camera-score">0.0 / 100</dd><dt>IMU sway</dt><dd id="imu-score">0.0 / 100</dd></dl>
   </section>
   <section class="card"><strong>Diagnostic log</strong><pre id="log" aria-live="polite"></pre></section>
@@ -90,7 +196,7 @@
   const $ = id => document.getElementById(id);
   const logNode = $('log'), envNode = $('environment'), video = $('preview'), overlay = $('overlay');
   let stream, cameraScore = 0, imuScore = 0, motionEnabled = false, landmarks = null, formBaseline = null, holistic, detecting = false, audioContext;
-  let trialRecording = false, trialTimer = null, countdownTimer = null, activeTrialId = null, readinessPoll = null, trialStartPerf = null;
+  let trialRecording = false, trialTimer = null, countdownTimer = null, activeTrialId = null, readinessPoll = null, trialStartPerf = null, pendingBodyWait = null;
   let phoneSampleBuffer = [], cameraFrameBuffer = [], lastPhoneSampleAt = 0, currentAssessment = null;
   let latestOrientation = { roll: null, pitch: null, yaw: null };
   window.addEventListener('deviceorientation', e => { latestOrientation = { roll: e.gamma ?? null, pitch: e.beta ?? null, yaw: e.alpha ?? null }; });
@@ -124,7 +230,7 @@
     if (navigator.permissions?.query) try { const p=await navigator.permissions.query({name:'camera'}); row('Camera permission state', p.state, p.state==='denied'?'bad':p.state==='granted'?'ok':'warn'); p.onchange=()=>log(`Camera permission changed to ${p.state}`); } catch { row('Camera permission state', 'Not queryable in this browser'); }
     if (pair.mode==='camera') { const trackerDd=row('Pose tracker (MediaPipe)', typeof Holistic==='undefined'?'Loading…':'Loaded', typeof Holistic==='undefined'?'warn':'ok'); if (typeof Holistic==='undefined') waitForHolistic(15000).then(ready=>{ trackerDd.textContent=ready?'Loaded':'Failed to load (check internet connection)'; trackerDd.className=ready?'ok':'bad'; }); }
   }
-  function drawGauge() { const c=$('gauge').getContext('2d'), w=320, value=Math.max(0,Math.min(100,100-(cameraScore*.55+imuScore*.45))); c.clearRect(0,0,w,w); c.lineWidth=22; c.strokeStyle='#354151'; c.beginPath(); c.arc(160,160,110,0,Math.PI*2); c.stroke(); c.strokeStyle=value>70?'#63d6a3':value>45?'#ffc66d':'#ff8484'; c.beginPath(); c.arc(160,160,110,-Math.PI/2,-Math.PI/2+Math.PI*2*(value/100)); c.stroke(); c.fillStyle='#f2f6fa'; c.font='bold 50px system-ui'; c.textAlign='center'; c.fillText(Math.round(value),160,176); c.fillStyle='#aab6c5'; c.font='16px system-ui'; c.fillText('stability',160,204); requestAnimationFrame(drawGauge); }
+  function drawGauge() { const c=$('gauge').getContext('2d'), w=320, value=Math.max(0,Math.min(100,100-(cameraScore*.55+imuScore*.45))); c.clearRect(0,0,w,w); c.lineWidth=22; c.strokeStyle='#354151'; c.beginPath(); c.arc(160,160,110,0,Math.PI*2); c.stroke(); c.strokeStyle=value>70?'#63d6a3':value>45?'#ffc66d':'#ff8484'; c.beginPath(); c.arc(160,160,110,-Math.PI/2,-Math.PI/2+Math.PI*2*(value/100)); c.stroke(); c.fillStyle='#0f2942'; c.font='bold 50px system-ui'; c.textAlign='center'; c.fillText(Math.round(value),160,176); c.fillStyle='#7c8798'; c.font='16px system-ui'; c.fillText('stability',160,204); requestAnimationFrame(drawGauge); }
   function poseDeg(r) { return r*180/Math.PI; }
   function poseAngle(a,b,c) { return poseDeg(Math.acos(Math.max(-1,Math.min(1,((a.x-b.x)*(c.x-b.x)+(a.y-b.y)*(c.y-b.y))/(Math.hypot(a.x-b.x,a.y-b.y)*Math.hypot(c.x-b.x,c.y-b.y)||1))))); }
   function poseTilt(a,b) { return poseDeg(Math.atan2(b.y-a.y,b.x-a.x)); }
@@ -132,7 +238,7 @@
   function midpoint(a,b) { return {x:(a.x+b.x)/2,y:(a.y+b.y)/2}; }
   function poseVisible(p) { return p && p.visibility > .45; }
   function poseMetrics(l) { const lh=l[23],rh=l[24],ls=l[11],rs=l[12],lk=l[25],rk=l[26],la=l[27],ra=l[28]; if (![lh,rh,ls,rs,lk,rk,la,ra].every(poseVisible)) return null; const hip=midpoint(lh,rh), sh=midpoint(ls,rs), bodyWidth=Math.hypot(ls.x-rs.x,ls.y-rs.y)||.1; return {hip,bodyWidth,trunk:poseVertical(hip,sh),pelvis:Math.abs(poseTilt(lh,rh)),leftKnee:poseAngle(lh,lk,la),rightKnee:poseAngle(rh,rk,ra),leftAnkle:la,rightAnkle:ra}; }
-  function drawSkeleton(l) { overlay.width=video.videoWidth||640; overlay.height=video.videoHeight||480; const octx=overlay.getContext('2d'); octx.clearRect(0,0,overlay.width,overlay.height); if (!l) return; try { drawConnectors(octx,l,POSE_CONNECTIONS,{color:'#75e5bf',lineWidth:3}); drawLandmarks(octx,l,{color:'#ffc96b',lineWidth:1,radius:3}); } catch {} }
+  function drawSkeleton(l) { overlay.width=video.videoWidth||640; overlay.height=video.videoHeight||480; const octx=overlay.getContext('2d'); octx.clearRect(0,0,overlay.width,overlay.height); if (!l) return; try { drawConnectors(octx,l,POSE_CONNECTIONS,{color:'#0f9488',lineWidth:3}); drawLandmarks(octx,l,{color:'#f2b134',lineWidth:1,radius:3}); } catch {} }
   function updateCameraScore(hip) { const magnitude=Math.hypot(hip.x,hip.y); poseBaseline.push(magnitude); if(poseBaseline.length>45) poseBaseline.shift(); const m=poseBaseline.reduce((s,n)=>s+n,0)/poseBaseline.length; cameraScore=Math.min(100,Math.abs(magnitude-m)*900); $('camera-score').textContent=`${cameraScore.toFixed(1)} / 100`; }
   function updateLivePose() { const m=landmarks&&poseMetrics(landmarks); if (!m) { $('tracked').textContent='No full body'; return null; } $('tracked').textContent='33 body landmarks'; $('trunk').textContent=`${m.trunk.toFixed(1)}°`; $('pelvis').textContent=`${m.pelvis.toFixed(1)}°`; $('knees').textContent=`${m.leftKnee.toFixed(0)}° / ${m.rightKnee.toFixed(0)}°`; updateCameraScore(m.hip); return m; }
   function formCheck() { const m=updateLivePose(); if (!m) { $('form-result').style.display='block'; $('form-result').textContent='Stand fully in the camera frame first.'; return; } formBaseline=m; const notes=[]; if (m.trunk>8) notes.push('reduce trunk lean'); if (m.pelvis>6) notes.push('level the pelvis'); if (m.leftKnee<155||m.rightKnee<155) notes.push('stand tall without a deep knee bend'); $('form-result').style.display='block'; $('form-result').textContent=notes.length?`Form check: ${notes.join('; ')}.`:'Form check passed: upright, level posture detected.'; }
@@ -163,7 +269,12 @@
     detectLoop();
   }
   $('stop-button').onclick=()=>{ if(stream) stream.getTracks().forEach(track=>track.stop()); stream=undefined; video.srcObject=null; landmarks=null; drawSkeleton(null); $('tracked').textContent='Waiting'; $('form-button').disabled=true; $('camera-status').textContent='Camera stopped.'; log('Camera stopped.'); };
+  function openQrModal(){ $('qr-modal-overlay').style.display='flex'; updateQr(); }
+  function closeQrModal(){ $('qr-modal-overlay').style.display='none'; }
+  $('qr-modal-close').onclick=closeQrModal;
+  $('qr-modal-overlay').onclick=e=>{ if(e.target.id==='qr-modal-overlay') closeQrModal(); };
   $('motion-button').onclick = async () => {
+    if (pair.mode==='camera') { openQrModal(); return; }
     if (motionEnabled) return; if (typeof DeviceMotionEvent==='undefined') { $('motion-status').textContent='DeviceMotionEvent is unavailable in this context.'; return; }
     try { if (typeof DeviceMotionEvent.requestPermission==='function') { const result=await DeviceMotionEvent.requestPermission(); if(result!=='granted') throw new Error(`Motion permission was ${result}`); } window.addEventListener('devicemotion',onMotion,{passive:true}); motionEnabled=true; $('motion-button').disabled=true; $('motion-status').textContent='Motion sensor enabled. Keep the phone fixed at L5 in portrait orientation.'; log('Motion listener enabled.'); }
     catch(error) { $('motion-status').textContent=`Motion unavailable: ${error.message}`; log(`Motion permission failed — ${error.message}`,'warn'); }
@@ -176,16 +287,26 @@
   function saveToHistory(assessmentJson, analysis) { const history=loadHistory(); history.push({ assessment: assessmentJson, analysis, savedAt: new Date().toISOString() }); try { localStorage.setItem('assessment-history', JSON.stringify(history)); } catch {} }
   function escapeHtml(s) { const d=document.createElement('div'); d.textContent = s==null ? '' : String(s); return d.innerHTML; }
   function renderList(title, items) { if (!items || !items.length) return ''; return `<strong>${escapeHtml(title)}</strong><ul>${items.map(i=>`<li>${escapeHtml(typeof i==='string'?i:JSON.stringify(i))}</li>`).join('')}</ul>`; }
+  function trialIcon(trial) {
+    const eyes = trial.eyes==='closed'
+      ? '<path d="M9.5 8.3h2.4M13.6 8.3H16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>'
+      : '<circle cx="10.6" cy="8.3" r="1" fill="currentColor"/><circle cx="14.9" cy="8.3" r="1" fill="currentColor"/>';
+    let legs;
+    if (trial.stance==='double_leg') legs='<path d="M9.5 21v6.5M16 21v6.5" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/><path d="M9 27.5h7.5" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/>';
+    else if (trial.tested_leg==='right') legs='<path d="M12.75 21v7" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/><path d="M12.75 21l4.5 4.5" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/><path d="M9 28h4" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/>';
+    else legs='<path d="M12.75 21v7" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/><path d="M12.75 21l-4.5 4.5" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/><path d="M12.5 28h4" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/>';
+    return `<svg viewBox="0 0 25 34" width="25" height="34" aria-hidden="true"><circle cx="12.75" cy="8.3" r="5.6" fill="none" stroke="currentColor" stroke-width="1.6"/>${eyes}<path d="M12.75 14v8M9 17l3.75 1.8L16.5 17" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>${legs}</svg>`;
+  }
   function renderChecklist() {
     const list=$('trial-checklist'); if (!list) return; list.innerHTML='';
     const doneNames=completedTrialNames();
     Assessment.TRIALS.forEach(trial => {
       const done=doneNames.includes(trial.trial_name);
+      const selected=activeTrialId===trial.trial_name;
       const btn=document.createElement('button');
-      btn.className=`trial-item ${done?'completed':''}`;
+      btn.className=`trial-item ${done?'completed':''} ${selected?'selected':''}`;
       btn.disabled=trialRecording && activeTrialId!==trial.trial_name;
-      const status=done?'Completed':(trialRecording&&activeTrialId===trial.trial_name?'Recording':'Not started');
-      btn.innerHTML=`<span class="check">${done?'✓':'○'}</span><span class="label">${escapeHtml(trial.label)}</span><span class="status">${status}</span>`;
+      btn.innerHTML=`${trialIcon(trial)}<span class="label">${escapeHtml(trial.label)}</span>${done?'<span class="check">✓</span>':''}`;
       btn.onclick=()=>selectTrial(trial.trial_name);
       list.append(btn);
     });
@@ -195,13 +316,14 @@
   }
   function selectTrial(trialName) {
     if (trialRecording) return;
-    clearInterval(countdownTimer); clearInterval(readinessPoll);
+    clearInterval(countdownTimer); clearInterval(readinessPoll); clearInterval(pendingBodyWait);
     activeTrialId=trialName;
     const trial=Assessment.TRIALS.find(t=>t.trial_name===trialName);
     $('active-trial-title').textContent=trial.label;
     $('active-trial-instruction').textContent=trial.instruction;
     $('trial-countdown').style.display='none';
     $('trial-live-status').style.display='none';
+    $('timer-badge').style.display='none';
     $('start-trial-button').disabled=true;
     $('start-trial-button').textContent='Start trial';
     renderChecklist();
@@ -226,13 +348,13 @@
     return {cameraOk,phoneOk,bodyOk,peerSeen,dataFresh};
   }
   function updateReadinessDisplay(r) {
-    $('check-camera').textContent=r.cameraOk?'Ready':'Enable the front camera first';
-    $('check-camera').className=r.cameraOk?'ok':'bad';
-    $('check-phone').textContent=r.phoneOk?'Connected & sending data':(!r.peerSeen?'Phone has not joined this session yet':'Phone joined, but no recent motion samples');
-    $('check-phone').className=r.phoneOk?'ok':'bad';
-    $('check-body').textContent=r.bodyOk?'Full body visible':'Step back so your whole body is in frame';
-    $('check-body').className=r.bodyOk?'ok':'warn';
-    $('start-trial-button').disabled=!(r.cameraOk&&r.phoneOk&&r.bodyOk);
+    $('check-camera').textContent=r.cameraOk?'Camera ready':'Enable the camera first';
+    $('check-camera').className=`chip ${r.cameraOk?'ok':'bad'}`;
+    $('check-phone').textContent=r.phoneOk?'Phone connected':(!r.peerSeen?'Phone not joined yet':'Phone joined, no recent data');
+    $('check-phone').className=`chip ${r.phoneOk?'ok':'bad'}`;
+    $('check-body').textContent=r.bodyOk?'Full body visible':'Step back — full body not in frame';
+    $('check-body').className=`chip ${r.bodyOk?'ok':'warn'}`;
+    $('start-trial-button').disabled=!(r.cameraOk&&r.phoneOk);
   }
   function startReadinessPolling() {
     if (readinessPoll) clearInterval(readinessPoll);
@@ -245,23 +367,42 @@
     $('start-trial-button').disabled=true;
     try { audioContext ||= new (window.AudioContext||window.webkitAudioContext)(); audioContext.resume?.(); } catch {}
     let n=3;
-    $('trial-countdown').style.display='block';
+    $('timer-badge').style.display='flex';
+    $('trial-countdown').style.display='inline';
     $('trial-countdown').textContent=n;
     countdownTimer=setInterval(()=>{
       n--;
       if (n>0) { $('trial-countdown').textContent=n; return; }
       clearInterval(countdownTimer);
       const r=checkReadinessNow();
-      if (!(r.cameraOk&&r.phoneOk&&r.bodyOk)) {
+      if (!r.cameraOk || !r.phoneOk) {
         $('trial-countdown').style.display='none';
-        $('trial-live-status').style.display='block';
-        $('trial-live-status').textContent = !r.bodyOk ? 'Trial cancelled: full body was not in frame when the countdown ended. Step back and try again.' : !r.phoneOk ? 'Trial cancelled: the iPhone sensor disconnected. Reconnect and try again.' : 'Trial cancelled: the camera became unavailable.';
-        log('Trial cancelled at countdown end — readiness check failed.','warn');
+        $('trial-live-status').style.display='inline';
+        $('trial-live-status').textContent = !r.cameraOk ? 'Cancelled: camera unavailable.' : 'Cancelled: phone disconnected.';
+        log('Trial cancelled at countdown end — camera/phone check failed.','warn');
         startReadinessPolling();
         return;
       }
+      if (!r.bodyOk) { waitForBodyThenStart(); return; }
       beginTrialRecording();
     },800);
+  }
+  function waitForBodyThenStart() {
+    $('trial-countdown').style.display='none';
+    $('trial-live-status').style.display='inline';
+    $('trial-live-status').textContent='Get into frame to begin…';
+    log('Countdown finished but full body not in frame — waiting.','warn');
+    if (pendingBodyWait) clearInterval(pendingBodyWait);
+    pendingBodyWait=setInterval(()=>{
+      const r=checkReadinessNow();
+      if (!r.cameraOk || !r.phoneOk) {
+        clearInterval(pendingBodyWait); pendingBodyWait=null;
+        $('trial-live-status').textContent = !r.cameraOk ? 'Cancelled: camera unavailable.' : 'Cancelled: phone disconnected.';
+        startReadinessPolling();
+        return;
+      }
+      if (r.bodyOk) { clearInterval(pendingBodyWait); pendingBodyWait=null; beginTrialRecording(); }
+    },300);
   }
   function beginTrialRecording() {
     trialRecording=true;
@@ -270,12 +411,12 @@
     const startedAt=new Date().toISOString();
     sendPair({type:'control',action:'start',trial:activeTrialId});
     $('trial-countdown').style.display='none';
-    $('trial-live-status').style.display='block';
+    $('trial-live-status').style.display='inline';
     renderChecklist();
     trialTimer=setInterval(()=>{
       const elapsed=(performance.now()-trialStartPerf)/1000;
       const remaining=Math.max(0,Assessment.TRIAL_DURATION_SECONDS-elapsed);
-      $('trial-live-status').textContent=`Recording: ${remaining.toFixed(0)}s remaining`;
+      $('trial-live-status').textContent=`${remaining.toFixed(0)}s remaining`;
       if (remaining<=0) finishActiveTrial(startedAt);
     },150);
   }
@@ -287,7 +428,7 @@
     const record=Assessment.buildTrialRecord({trial,sessionId:currentAssessment.assessment_id,startedAt,endedAt:new Date().toISOString(),phoneSamples:phoneSampleBuffer,cameraFrames:cameraFrameBuffer});
     currentAssessment.trials[trial.trial_name]=record;
     saveCurrentAssessment();
-    $('trial-live-status').textContent=`Trial complete. ${cameraFrameBuffer.length} camera frames, ${phoneSampleBuffer.length} phone samples recorded.`;
+    $('trial-live-status').textContent=`Complete: ${cameraFrameBuffer.length} frames, ${phoneSampleBuffer.length} samples.`;
     log(`Trial complete: ${trial.trial_name}. ${cameraFrameBuffer.length} camera frames, ${phoneSampleBuffer.length} phone samples.`);
     completionTone();
     activeTrialId=null;

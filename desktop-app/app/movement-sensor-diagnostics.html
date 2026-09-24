@@ -99,6 +99,13 @@
     .modal-box label{font-size:.82rem;text-align:left;display:block;margin-top:10px}
 
     @media(max-width:430px){.trial-row{grid-template-columns:1fr}}
+
+    .app-layout{display:flex;gap:22px;align-items:flex-start;margin-top:8px}
+    .sidebar{flex:none;width:140px;display:flex;flex-direction:column;gap:6px;position:sticky;top:16px}
+    .nav-item{background:transparent;color:var(--muted);border:1.5px solid transparent;border-radius:10px;padding:10px 14px;font:700 14px inherit;text-align:left;width:100%}
+    .nav-item.active{background:#fff;color:var(--accent-dark);border-color:var(--line);box-shadow:0 6px 16px #00000010}
+    .app-content{flex:1;min-width:0}
+    @media(max-width:700px){.app-layout{flex-direction:column}.sidebar{flex-direction:row;width:100%;position:static}.nav-item{flex:1;text-align:center}}
   </style>
 </head>
 <body>
@@ -114,6 +121,13 @@
     </div>
   </header>
 
+  <div class="app-layout">
+  <nav class="sidebar">
+    <button class="nav-item active" id="nav-home-btn">Home</button>
+    <button class="nav-item" id="nav-results-btn">Results</button>
+  </nav>
+  <div class="app-content">
+  <div id="home-view">
   <section id="checklist-card">
     <div class="trial-row" id="trial-checklist"></div>
     <p class="progress-caption"><span id="assessment-progress-text">0/6 completed</span></p>
@@ -173,11 +187,6 @@
   <section class="card" id="install-card" style="display:none"><strong>Install as an app</strong><p id="install-status">Checking this browser…</p><button class="outline" id="install-button" style="display:none">Install on this device</button></section>
   <section class="card" style="display:none"><strong>Environment</strong><dl id="environment"></dl></section>
   <section class="card"><dl><dt>Tracker</dt><dd id="tracked">Waiting</dd><dt>Trunk lean</dt><dd id="trunk">—</dd><dt>Pelvic tilt</dt><dd id="pelvis">—</dd><dt>Knee angles</dt><dd id="knees">—</dd></dl></section>
-  <section class="card" id="assessment-results-card" style="display:none">
-    <strong>Assessment Results</strong>
-    <p id="results-status">Analyzing…</p>
-    <div id="results-body"></div>
-  </section>
   <section class="card">
     <strong>AddBiomechanics reference-data path</strong>
     <p>This browser records a phone trial and exports a transparent CSV. AddBiomechanics reference files are <code>.b3d</code> / OpenSim outputs and require a server-side conversion or model-training pipeline; they cannot be read directly by a self-contained browser page.</p>
@@ -190,6 +199,16 @@
   </section>
   <section class="card"><strong>Diagnostic log</strong><pre id="log" aria-live="polite"></pre></section>
   <section class="card"><details><summary>Deployment checklist</summary><ol><li>Serve this exact file at an <strong>HTTPS</strong> URL, as the top-level page.</li><li>Do not send <code>Permissions-Policy: camera=()</code>. A top-level app normally needs <code>Permissions-Policy: camera=(self)</code>, or no restrictive camera policy.</li><li>If embedding is unavoidable, the host header must delegate to the embedded origin and its iframe must include <code>allow="camera"</code>. Sandboxed frames also need <code>allow-same-origin</code>.</li><li>Open the same URL in Safari/Chrome's normal browser, not an in-app preview. If it works there but not in the preview, the host app/webview must add native camera and motion permission handling; website settings cannot override that.</li><li>On iOS, enable Camera for the browser/host app in Settings and check that site's camera setting. On Android Chrome, check the Chrome app camera permission and the site's permission.</li></ol></details></section>
+  </div>
+  <div id="results-view" style="display:none">
+    <section class="card" id="assessment-results-card">
+      <strong>Assessment Results</strong>
+      <p id="results-status">Complete all six trials to see your AI-generated analysis here.</p>
+      <div id="results-body"></div>
+    </section>
+  </div>
+  </div>
+  </div>
 </main>
 <script>
 (() => {
@@ -446,7 +465,7 @@
   }
   async function runFullAnalysis() {
     currentAssessment.analyzed=true; saveCurrentAssessment();
-    $('assessment-results-card').style.display='block';
+    showView('results');
     $('results-status').textContent='All six trials complete. Calculating comparisons and sending for analysis…';
     $('results-body').innerHTML='';
     const trials=Assessment.TRIALS.map(t=>currentAssessment.trials[t.trial_name]);
@@ -485,6 +504,14 @@
     $('install-status').textContent = outcome === 'accepted' ? 'Installed.' : 'Install dismissed.';
     deferredInstall = null; $('install-button').style.display = 'none';
   };
+  function showView(view) {
+    $('home-view').style.display = view==='home' ? 'block' : 'none';
+    $('results-view').style.display = view==='results' ? 'block' : 'none';
+    $('nav-home-btn').classList.toggle('active', view==='home');
+    $('nav-results-btn').classList.toggle('active', view==='results');
+  }
+  $('nav-home-btn').onclick = () => showView('home');
+  $('nav-results-btn').onclick = () => showView('results');
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
   if (pair.mode!=='camera') { const cc=$('checklist-card'); if (cc) cc.style.display='none'; } else { currentAssessment=loadAssessment(); renderChecklist(); selectNextIncompleteTrial(); }
   renderPairing(); diagnostics(); drawGauge(); setupInstall();

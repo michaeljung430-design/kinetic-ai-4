@@ -260,7 +260,6 @@
   function midpoint(a,b) { return {x:(a.x+b.x)/2,y:(a.y+b.y)/2}; }
   function poseVisible(p) { return p && p.visibility > .45; }
   function poseMetrics(l) { const lh=l[23],rh=l[24],ls=l[11],rs=l[12],lk=l[25],rk=l[26],la=l[27],ra=l[28]; if (![lh,rh,ls,rs,lk,rk,la,ra].every(poseVisible)) return null; const hip=midpoint(lh,rh), sh=midpoint(ls,rs), bodyWidth=Math.hypot(ls.x-rs.x,ls.y-rs.y)||.1; return {hip,bodyWidth,trunk:poseVertical(hip,sh),pelvis:Math.abs(poseTilt(lh,rh)),leftKnee:poseAngle(lh,lk,la),rightKnee:poseAngle(rh,rk,ra),leftAnkle:la,rightAnkle:ra}; }
-  const TRACKED_LANDMARKS = {0:'Nose',11:'L Shoulder',12:'R Shoulder',13:'L Elbow',14:'R Elbow',15:'L Wrist',16:'R Wrist',23:'L Hip',24:'R Hip',25:'L Knee',26:'R Knee',27:'L Ankle',28:'R Ankle',29:'L Heel',30:'R Heel',31:'L Toe',32:'R Toe'};
   function drawPhoneIndicator(octx, hip) {
     if (!hip) return;
     const r = checkReadinessNow();
@@ -286,16 +285,6 @@
     octx.clearRect(0,0,overlay.width,overlay.height);
     if (!l) { drawPhoneIndicator(octx, null); return; }
     try { drawConnectors(octx,l,POSE_CONNECTIONS,{color:'#0f9488',lineWidth:3}); drawLandmarks(octx,l,{color:'#f2b134',lineWidth:1,radius:3}); } catch {}
-    octx.font='11px system-ui, sans-serif'; octx.textBaseline='middle';
-    for (const [idxStr,label] of Object.entries(TRACKED_LANDMARKS)) {
-      const p=l[+idxStr];
-      if (!p || (p.visibility!=null && p.visibility<.4)) continue;
-      const x=p.x*overlay.width, y=p.y*overlay.height;
-      octx.fillStyle='#ff5f7e';
-      octx.beginPath(); octx.arc(x,y,5,0,Math.PI*2); octx.fill();
-      octx.lineWidth=3; octx.strokeStyle='rgba(5,10,15,.6)'; octx.strokeText(label,x+8,y);
-      octx.fillStyle='#fff'; octx.fillText(label,x+8,y);
-    }
     const lh=l[23], rh=l[24];
     const hip = (lh && rh && (lh.visibility==null||lh.visibility>.4) && (rh.visibility==null||rh.visibility>.4)) ? {x:(lh.x+rh.x)/2,y:(lh.y+rh.y)/2} : null;
     drawPhoneIndicator(octx, hip);

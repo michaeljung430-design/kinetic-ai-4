@@ -26,8 +26,8 @@ app.post('/api/analyze', async (request, response) => {
     const result = await analyzeAssessment(assessment);
     response.json(result);
   } catch (error) {
-    console.error('AI analysis failed:', error.message);
-    response.status(error.status || 502).json({ error: error.message || 'AI analysis failed.' });
+    console.error('AI analysis failed:', error.message, error.detail || '');
+    response.status(error.status || 502).json({ error: error.message || 'AI analysis failed.', detail: error.detail });
   }
 });
 app.use(express.static(__dirname));

@@ -3,7 +3,7 @@
 // being loaded, and on a `$` (getElementById) + `escapeHtml` helper being
 // present in the enclosing page scope (passed in via ResultsUI.init).
 (function (global) {
-  let $, escapeHtml, currentTrialName = null, rawCache = null, replayState = null;
+  let $, escapeHtml, getAssessment = () => null, currentTrialName = null, rawCache = null, replayState = null;
 
   // ---- Small render helpers ----
   function metricGrid(items) {
@@ -186,7 +186,7 @@
   }
 
   function renderComparisonSection() {
-    const trials = currentAssessment?.trials || {};
+    const trials = getAssessment()?.trials || {};
     const eo = trials.double_leg_eyes_open?.interpreted, ec = trials.double_leg_eyes_closed?.interpreted;
     const cmp1 = (eo && ec) ? Interpretation.calculateEyesOpenClosedComparison(eo, ec, 'Double-leg') : null;
     const roEo = trials.right_leg_eyes_open?.interpreted, roEc = trials.right_leg_eyes_closed?.interpreted;
@@ -347,7 +347,7 @@
   }
 
   global.ResultsUI = {
-    init(deps) { $ = deps.$; escapeHtml = deps.escapeHtml; },
+    init(deps) { $ = deps.$; escapeHtml = deps.escapeHtml; if (deps.getAssessment) getAssessment = deps.getAssessment; },
     populateTrialSelect,
     setCurrentTrial(name) { currentTrialName = name; },
     getCurrentTrial() { return currentTrialName; },

@@ -595,7 +595,7 @@
   }
   $('nav-home-btn').onclick = () => showView('home');
   $('nav-results-btn').onclick = () => { showView('results'); refreshTrialAnalysisView(); };
-  ResultsUI.init({ $, escapeHtml });
+  ResultsUI.init({ $, escapeHtml, getAssessment: () => currentAssessment });
   function showAnalysisSubview(which) {
     $('interpreted-view').style.display = which==='interpreted' ? 'block' : 'none';
     $('raw-view').style.display = which==='raw' ? 'block' : 'none';

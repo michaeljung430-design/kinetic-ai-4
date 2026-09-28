@@ -85,6 +85,8 @@
     .stage video,.stage canvas{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover}
     .stage canvas{pointer-events:none}
     .timer-badge{position:absolute;top:14px;left:14px;display:flex;align-items:center;gap:6px;background:rgba(10,20,25,.72);color:#fff;padding:6px 12px 6px 10px;border-radius:99px;font-weight:800;font-size:.92rem;max-width:calc(100% - 28px)}
+    .gauge-badge{position:absolute;top:14px;right:14px;width:84px;height:84px;border-radius:50%;background:rgba(255,255,255,.88);box-shadow:0 4px 14px #00000025;overflow:hidden}
+    .gauge-badge canvas{width:100%;height:100%;display:block}
     #trial-countdown,#trial-live-status{margin:0;color:#fff;font-size:inherit;font-weight:inherit;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .stage-caption{text-align:center;color:var(--muted);font-size:.86rem;margin:10px 4px 0}
     .trial-eyebrow{text-align:center;color:var(--accent-dark);font-weight:700;font-size:.86rem;margin:0 0 2px}
@@ -156,6 +158,7 @@
         <span id="trial-countdown" style="display:none"></span>
         <span id="trial-live-status" style="display:none"></span>
       </div>
+      <div class="gauge-badge"><canvas id="gauge" width="320" height="320"></canvas></div>
     </div>
     <p class="stage-caption" id="active-trial-instruction">Position yourself in the frame, standing upright and relaxed.</p>
   </div>
@@ -194,7 +197,7 @@
   </section>
   <section class="card">
     <strong>Combined stability index</strong>
-    <canvas id="gauge" width="320" height="320" style="display:block;margin:8px auto 0;width:160px;height:160px"></canvas>
+    <p style="margin:4px 0 0;font-size:.82rem">Also shown live in the top-right corner of the camera view.</p>
     <dl><dt>Camera sway (pose)</dt><dd id="camera-score">0.0 / 100</dd><dt>IMU sway</dt><dd id="imu-score">0.0 / 100</dd></dl>
   </section>
   <section class="card"><strong>Diagnostic log</strong><pre id="log" aria-live="polite"></pre></section>
@@ -216,7 +219,7 @@
   const logNode = $('log'), envNode = $('environment'), video = $('preview'), overlay = $('overlay');
   let stream, cameraScore = 0, imuScore = 0, motionEnabled = false, landmarks = null, formBaseline = null, holistic, detecting = false, audioContext;
   let trialRecording = false, trialTimer = null, countdownTimer = null, activeTrialId = null, readinessPoll = null, trialStartPerf = null, pendingBodyWait = null;
-  let phoneSampleBuffer = [], cameraFrameBuffer = [], lastPhoneSampleAt = 0, currentAssessment = null;
+  let phoneSampleBuffer = [], cameraFrameBuffer = [], lastPhoneSampleAt = 0, currentAssessment = null, latestPhoneSample = null;
   let latestOrientation = { roll: null, pitch: null, yaw: null };
   window.addEventListener('deviceorientation', e => { latestOrientation = { roll: e.gamma ?? null, pitch: e.beta ?? null, yaw: e.alpha ?? null }; });
   const query=new URLSearchParams(location.search);
@@ -230,7 +233,7 @@
   function pairingLink(){const relay=encodeURIComponent($('relay-url').value.trim());return `${PUBLIC_BASE}/movement-sensor-diagnostics.html?mode=sensor&session=${pair.session}&relay=${relay}`;}
   function updateQr(){const wrap=$('pair-qr-wrap'),box=$('pair-qr');if(!wrap||!box||pair.mode!=='camera')return;const link=pairingLink();if(!$('relay-url').value.trim()){wrap.style.display='none';return;}try{const qr=qrcode(0,'M');qr.addData(link);qr.make();box.innerHTML=qr.createSvgTag({cellSize:4,margin:8});wrap.style.display='block';}catch(error){log(`QR generation failed — ${error.message}`,'warn');wrap.style.display='none';}}
   function sendPair(message){if(pair.socket?.readyState===WebSocket.OPEN)pair.socket.send(JSON.stringify({session:pair.session,...message}));}
-  function connectRelay(){const url=$('relay-url').value.trim();if(!url)return $('pairing-detail').textContent='Add your relay address first.';const localOk=url.startsWith('ws://')&&location.protocol!=='https:';if(!url.startsWith('wss://')&&!localOk)return $('pairing-detail').textContent='Use a wss:// relay address (ws:// only works when this page itself is not HTTPS, e.g. the desktop app on your local network).';localStorage.setItem('movement-relay',url);pair.socket?.close();pair.socket=new WebSocket(url);pair.socket.onopen=()=>{sendPair({type:'join',role:pair.mode});$('pairing-status').textContent=`Connected as ${pair.mode} · session ${pair.session}`;log(`Relay socket open. Joining as ${pair.mode}, session ${pair.session}.`);};let sampleLogCount=0,wasStale=true;pair.socket.onmessage=e=>{let m;try{m=JSON.parse(e.data)}catch{return}if(m.type==='joined')log(`Relay confirmed join: role=${m.role}, session=${m.session}.`);if(pair.mode==='camera'&&m.type==='sample'){updateImuScore(m.sample);lastPhoneSampleAt=Date.now();if(wasStale){log('Receiving phone samples.');wasStale=false;}if(sampleLogCount<3){log(`Sample #${++sampleLogCount} from phone: x=${m.sample.ax},y=${m.sample.ay},z=${m.sample.az}.`);}if(trialRecording){phoneSampleBuffer.push({timestamp_seconds:m.sample.elapsedTrial??((performance.now()-trialStartPerf)/1000),accelerometer:{x:m.sample.ax??null,y:m.sample.ay??null,z:m.sample.az??null},gyroscope:{x:m.sample.agx??null,y:m.sample.agy??null,z:m.sample.agz??null},orientation:m.sample.orientation||{roll:null,pitch:null,yaw:null}});}}if(pair.mode==='sensor'&&m.type==='control'){pair.remoteRecording=m.action==='start';if(m.action==='start')trialStartPerf=performance.now();$('motion-status').textContent=pair.remoteRecording?'Recording for the paired camera station…':'Paired camera station stopped the trial.';}if(m.type==='peer'){if(m.role==='sensor')pair.peer=m.connected;log(`Peer message: role=${m.role}, connected=${m.connected}. pair.peer is now ${pair.peer}.`);$('pairing-detail').textContent=`${m.role} ${m.connected?'connected':'disconnected'} to this session.`;}if(m.type==='error'){log(`Relay error: ${m.message}`,'warn');$('pairing-detail').textContent=m.message;}};pair.socket.onerror=()=>{log('Relay WebSocket error.','warn');$('pairing-detail').textContent='Relay connection failed. Confirm the wss:// address.';};pair.socket.onclose=()=>{log('Relay socket closed.','warn');if(pair.socket)$('pairing-status').textContent='Relay disconnected. Reconnect before the next trial.';};}
+  function connectRelay(){const url=$('relay-url').value.trim();if(!url)return $('pairing-detail').textContent='Add your relay address first.';const localOk=url.startsWith('ws://')&&location.protocol!=='https:';if(!url.startsWith('wss://')&&!localOk)return $('pairing-detail').textContent='Use a wss:// relay address (ws:// only works when this page itself is not HTTPS, e.g. the desktop app on your local network).';localStorage.setItem('movement-relay',url);pair.socket?.close();pair.socket=new WebSocket(url);pair.socket.onopen=()=>{sendPair({type:'join',role:pair.mode});$('pairing-status').textContent=`Connected as ${pair.mode} · session ${pair.session}`;log(`Relay socket open. Joining as ${pair.mode}, session ${pair.session}.`);};let sampleLogCount=0,wasStale=true;pair.socket.onmessage=e=>{let m;try{m=JSON.parse(e.data)}catch{return}if(m.type==='joined')log(`Relay confirmed join: role=${m.role}, session=${m.session}.`);if(pair.mode==='camera'&&m.type==='sample'){updateImuScore(m.sample);lastPhoneSampleAt=Date.now();latestPhoneSample=m.sample;if(wasStale){log('Receiving phone samples.');wasStale=false;}if(sampleLogCount<3){log(`Sample #${++sampleLogCount} from phone: x=${m.sample.ax},y=${m.sample.ay},z=${m.sample.az}.`);}if(trialRecording){phoneSampleBuffer.push({timestamp_seconds:m.sample.elapsedTrial??((performance.now()-trialStartPerf)/1000),accelerometer:{x:m.sample.ax??null,y:m.sample.ay??null,z:m.sample.az??null},gyroscope:{x:m.sample.agx??null,y:m.sample.agy??null,z:m.sample.agz??null},orientation:m.sample.orientation||{roll:null,pitch:null,yaw:null}});}}if(pair.mode==='sensor'&&m.type==='control'){pair.remoteRecording=m.action==='start';if(m.action==='start')trialStartPerf=performance.now();$('motion-status').textContent=pair.remoteRecording?'Recording for the paired camera station…':'Paired camera station stopped the trial.';}if(m.type==='peer'){if(m.role==='sensor')pair.peer=m.connected;log(`Peer message: role=${m.role}, connected=${m.connected}. pair.peer is now ${pair.peer}.`);$('pairing-detail').textContent=`${m.role} ${m.connected?'connected':'disconnected'} to this session.`;}if(m.type==='error'){log(`Relay error: ${m.message}`,'warn');$('pairing-detail').textContent=m.message;}};pair.socket.onerror=()=>{log('Relay WebSocket error.','warn');$('pairing-detail').textContent='Relay connection failed. Confirm the wss:// address.';};pair.socket.onclose=()=>{log('Relay socket closed.','warn');if(pair.socket)$('pairing-status').textContent='Relay disconnected. Reconnect before the next trial.';};}
   function renderPairing(){const defaultRelay=PUBLIC_BASE.replace('https://','wss://').replace('http://','ws://');const stored=localStorage.getItem('movement-relay')||query.get('relay')||defaultRelay;$('relay-url').value=stored;$('pairing-actions').innerHTML=pair.mode==='camera'?'<button id="connect-relay">Connect camera station</button><button class="secondary" id="copy-pair">Copy L5 sensor link</button>':'<button id="connect-relay">Connect L5 sensor</button>'; $('pairing-detail').textContent=pair.mode==='camera'?`Session ${pair.session}: copy the link (or scan the QR) on the L5 phone after connecting your relay.`:'This phone streams motion samples to the paired camera station.';$('connect-relay').onclick=connectRelay;if(pair.mode==='camera'){$('copy-pair').onclick=()=>navigator.clipboard.writeText(pairingLink()).then(()=>{$('pairing-detail').textContent='Sensor link copied. Open it on the L5 phone.';});$('relay-url').addEventListener('input',updateQr);updateQr();}}
   const baseline = [], poseBaseline = [];
   function log(message, kind='') { const line = `[${new Date().toLocaleTimeString()}] ${message}`; logNode.textContent = line + '\n' + logNode.textContent; console.log(line); if (kind) console[kind](line); }
@@ -257,7 +260,46 @@
   function midpoint(a,b) { return {x:(a.x+b.x)/2,y:(a.y+b.y)/2}; }
   function poseVisible(p) { return p && p.visibility > .45; }
   function poseMetrics(l) { const lh=l[23],rh=l[24],ls=l[11],rs=l[12],lk=l[25],rk=l[26],la=l[27],ra=l[28]; if (![lh,rh,ls,rs,lk,rk,la,ra].every(poseVisible)) return null; const hip=midpoint(lh,rh), sh=midpoint(ls,rs), bodyWidth=Math.hypot(ls.x-rs.x,ls.y-rs.y)||.1; return {hip,bodyWidth,trunk:poseVertical(hip,sh),pelvis:Math.abs(poseTilt(lh,rh)),leftKnee:poseAngle(lh,lk,la),rightKnee:poseAngle(rh,rk,ra),leftAnkle:la,rightAnkle:ra}; }
-  function drawSkeleton(l) { overlay.width=video.videoWidth||640; overlay.height=video.videoHeight||480; const octx=overlay.getContext('2d'); octx.clearRect(0,0,overlay.width,overlay.height); if (!l) return; try { drawConnectors(octx,l,POSE_CONNECTIONS,{color:'#0f9488',lineWidth:3}); drawLandmarks(octx,l,{color:'#f2b134',lineWidth:1,radius:3}); } catch {} }
+  const TRACKED_LANDMARKS = {0:'Nose',11:'L Shoulder',12:'R Shoulder',13:'L Elbow',14:'R Elbow',15:'L Wrist',16:'R Wrist',23:'L Hip',24:'R Hip',25:'L Knee',26:'R Knee',27:'L Ankle',28:'R Ankle',29:'L Heel',30:'R Heel',31:'L Toe',32:'R Toe'};
+  function drawPhoneIndicator(octx, hip) {
+    if (!hip) return;
+    const r = checkReadinessNow();
+    const x = hip.x*overlay.width, y = hip.y*overlay.height;
+    const roll = latestPhoneSample?.orientation?.roll ?? 0;
+    const mag = latestPhoneSample ? Math.hypot(latestPhoneSample.ax||0, latestPhoneSample.ay||0, latestPhoneSample.az||0) : 0;
+    const pulse = Math.min(1, Math.abs(mag-9.8)/6);
+    octx.save();
+    octx.translate(x,y);
+    octx.rotate((roll||0)*Math.PI/180);
+    if (r.phoneOk) { octx.beginPath(); octx.arc(0,0,17+pulse*9,0,Math.PI*2); octx.strokeStyle=`rgba(15,148,136,${.4+pulse*.5})`; octx.lineWidth=2; octx.stroke(); }
+    octx.fillStyle = r.phoneOk ? '#0f9488' : '#94a3b8';
+    octx.strokeStyle = '#fff'; octx.lineWidth = 2;
+    const w=15, h=27, rad=4;
+    octx.beginPath();
+    if (octx.roundRect) octx.roundRect(-w/2,-h/2,w,h,rad); else octx.rect(-w/2,-h/2,w,h);
+    octx.fill(); octx.stroke();
+    octx.restore();
+  }
+  function drawSkeleton(l) {
+    overlay.width=video.videoWidth||640; overlay.height=video.videoHeight||480;
+    const octx=overlay.getContext('2d');
+    octx.clearRect(0,0,overlay.width,overlay.height);
+    if (!l) { drawPhoneIndicator(octx, null); return; }
+    try { drawConnectors(octx,l,POSE_CONNECTIONS,{color:'#0f9488',lineWidth:3}); drawLandmarks(octx,l,{color:'#f2b134',lineWidth:1,radius:3}); } catch {}
+    octx.font='11px system-ui, sans-serif'; octx.textBaseline='middle';
+    for (const [idxStr,label] of Object.entries(TRACKED_LANDMARKS)) {
+      const p=l[+idxStr];
+      if (!p || (p.visibility!=null && p.visibility<.4)) continue;
+      const x=p.x*overlay.width, y=p.y*overlay.height;
+      octx.fillStyle='#ff5f7e';
+      octx.beginPath(); octx.arc(x,y,5,0,Math.PI*2); octx.fill();
+      octx.lineWidth=3; octx.strokeStyle='rgba(5,10,15,.6)'; octx.strokeText(label,x+8,y);
+      octx.fillStyle='#fff'; octx.fillText(label,x+8,y);
+    }
+    const lh=l[23], rh=l[24];
+    const hip = (lh && rh && (lh.visibility==null||lh.visibility>.4) && (rh.visibility==null||rh.visibility>.4)) ? {x:(lh.x+rh.x)/2,y:(lh.y+rh.y)/2} : null;
+    drawPhoneIndicator(octx, hip);
+  }
   function updateCameraScore(hip) { const magnitude=Math.hypot(hip.x,hip.y); poseBaseline.push(magnitude); if(poseBaseline.length>45) poseBaseline.shift(); const m=poseBaseline.reduce((s,n)=>s+n,0)/poseBaseline.length; cameraScore=Math.min(100,Math.abs(magnitude-m)*900); $('camera-score').textContent=`${cameraScore.toFixed(1)} / 100`; }
   function updateLivePose() { const m=landmarks&&poseMetrics(landmarks); if (!m) { $('tracked').textContent='No full body'; return null; } $('tracked').textContent='33 body landmarks'; $('trunk').textContent=`${m.trunk.toFixed(1)}°`; $('pelvis').textContent=`${m.pelvis.toFixed(1)}°`; $('knees').textContent=`${m.leftKnee.toFixed(0)}° / ${m.rightKnee.toFixed(0)}°`; updateCameraScore(m.hip); return m; }
   function formCheck() { const m=updateLivePose(); if (!m) { $('form-result').style.display='block'; $('form-result').textContent='Stand fully in the camera frame first.'; return; } formBaseline=m; const notes=[]; if (m.trunk>8) notes.push('reduce trunk lean'); if (m.pelvis>6) notes.push('level the pelvis'); if (m.leftKnee<155||m.rightKnee<155) notes.push('stand tall without a deep knee bend'); $('form-result').style.display='block'; $('form-result').textContent=notes.length?`Form check: ${notes.join('; ')}.`:'Form check passed: upright, level posture detected.'; }

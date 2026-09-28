@@ -12,6 +12,10 @@
   <title>Movement Sensor Diagnostics</title>
   <script src="./qrcode.js"></script>
   <script src="./assessment.js"></script>
+  <script src="./biomechanics.js"></script>
+  <script src="./interpretation.js"></script>
+  <script src="./raw-store.js"></script>
+  <script src="./results-ui.js"></script>
   <script>
     // Only the camera station needs body-pose tracking; skip the download
     // entirely on a phone opened in sensor mode (saves bandwidth/time there).
@@ -108,6 +112,32 @@
     .nav-item.active{background:#fff;color:var(--accent-dark);border-color:var(--line);box-shadow:0 6px 16px #00000010}
     .app-content{flex:1;min-width:0}
     @media(max-width:700px){.app-layout{flex-direction:column}.sidebar{flex-direction:row;width:100%;position:static}.nav-item{flex:1;text-align:center}}
+
+    .metric-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin:8px 0}
+    .metric-card{background:var(--chip-bg);border-radius:10px;padding:9px 11px}
+    .metric-card small{display:block;color:var(--muted);font-size:.74rem}
+    .metric-card b{font-size:1rem;color:var(--ink)}
+    .metric-card.flag{background:#fdf3e3}
+    .movement-summary{background:#effaf8;border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin:12px 0}
+    .movement-summary ul{margin:6px 0 0;padding-left:18px;color:var(--ink)}
+    .region-section{background:#fff;border:1px solid var(--line);border-radius:12px;margin:8px 0;padding:2px 14px 12px}
+    .region-section summary{padding:10px 0;font-weight:700}
+    .split-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+    .chart-block{margin:10px 0}
+    .chart-block small{display:block;color:var(--muted);margin-bottom:4px;font-size:.76rem}
+    .chart-block canvas{background:#fbfbfc;border-radius:10px;cursor:crosshair}
+    .events-list{list-style:none;margin:0;padding:0;font-size:.86rem}
+    .events-list li{padding:5px 0;border-bottom:1px solid var(--line)}
+    .events-list .event-jump{background:var(--chip-bg);color:var(--accent-dark);border-radius:99px;padding:2px 9px;font-size:.78rem;margin-right:6px}
+    .replay-panel{display:flex;flex-direction:column;align-items:center;gap:8px;margin:10px 0}
+    .replay-controls{display:flex;align-items:center;gap:6px;width:100%;max-width:360px;flex-wrap:wrap}
+    .replay-controls button{padding:7px 10px;font-size:.85rem}
+    .replay-controls select{width:auto;margin:0;padding:6px}
+    .raw-filters{display:flex;flex-wrap:wrap;gap:14px;margin:10px 0;font-size:.82rem}
+    .raw-filters label{color:var(--muted)}
+    .raw-filters select,.raw-filters input{margin:2px 0 0;padding:6px}
+    .raw-table{font-size:.76rem}
+    .raw-table td,.raw-table th{white-space:nowrap;padding:5px 7px}
   </style>
 </head>
 <body>
@@ -205,9 +235,24 @@
   </div>
   <div id="results-view" style="display:none">
     <section class="card" id="assessment-results-card">
-      <strong>Assessment Results</strong>
+      <strong>Assessment Results (AI Summary)</strong>
       <p id="results-status">Complete all six trials to see your AI-generated analysis here.</p>
       <div id="results-body"></div>
+    </section>
+    <section class="card">
+      <strong>Trial Motion Analysis</strong>
+      <label for="trial-select">Trial</label>
+      <select id="trial-select"></select>
+      <div class="app-layout" style="margin-top:12px">
+        <nav class="sidebar">
+          <button class="nav-item active" id="nav-interpreted-btn">Interpreted Results</button>
+          <button class="nav-item" id="nav-raw-btn">Raw Results</button>
+        </nav>
+        <div class="app-content">
+          <div id="interpreted-view"><p>Complete a trial to see interpreted results here.</p></div>
+          <div id="raw-view" style="display:none"><p>Complete a trial to see raw data here.</p></div>
+        </div>
+      </div>
     </section>
   </div>
   </div>
@@ -476,12 +521,18 @@
     sendPair({type:'control',action:'stop'});
     const trial=Assessment.TRIALS.find(t=>t.trial_name===activeTrialId);
     const record=Assessment.buildTrialRecord({trial,sessionId:currentAssessment.assessment_id,startedAt,endedAt:new Date().toISOString(),phoneSamples:phoneSampleBuffer,cameraFrames:cameraFrameBuffer});
+    try {
+      record.interpreted=Interpretation.analyzeTrial(cameraFrameBuffer,phoneSampleBuffer,{trial_name:trial.trial_name,stance:trial.stance,tested_leg:trial.tested_leg,eyes:trial.eyes,duration_seconds:Assessment.TRIAL_DURATION_SECONDS});
+      record.interpreted.movement_summary=Interpretation.generateMovementSummary(record.interpreted);
+    } catch (error) { log(`Interpretation pipeline failed for ${trial.trial_name}: ${error.message}`,'warn'); }
     currentAssessment.trials[trial.trial_name]=record;
     saveCurrentAssessment();
+    RawStore.saveRawTrial(record.trial_id,{trial_name:trial.trial_name,cameraFrames:cameraFrameBuffer,phoneSamples:phoneSampleBuffer}).catch(error=>log(`Could not save raw trial data: ${error.message}`,'warn'));
     $('trial-live-status').textContent=`Complete: ${cameraFrameBuffer.length} frames, ${phoneSampleBuffer.length} samples.`;
     log(`Trial complete: ${trial.trial_name}. ${cameraFrameBuffer.length} camera frames, ${phoneSampleBuffer.length} phone samples.`);
     completionTone();
     activeTrialId=null;
+    refreshTrialAnalysisView();
     setTimeout(()=>{ renderChecklist(); selectNextIncompleteTrial(); },1200);
   }
   function renderComparisons(comparisons) {
@@ -497,6 +548,7 @@
   async function runFullAnalysis() {
     currentAssessment.analyzed=true; saveCurrentAssessment();
     showView('results');
+    refreshTrialAnalysisView();
     $('results-status').textContent='All six trials complete. Calculating comparisons and sending for analysis…';
     $('results-body').innerHTML='';
     const trials=Assessment.TRIALS.map(t=>currentAssessment.trials[t.trial_name]);
@@ -542,7 +594,30 @@
     $('nav-results-btn').classList.toggle('active', view==='results');
   }
   $('nav-home-btn').onclick = () => showView('home');
-  $('nav-results-btn').onclick = () => showView('results');
+  $('nav-results-btn').onclick = () => { showView('results'); refreshTrialAnalysisView(); };
+  ResultsUI.init({ $, escapeHtml });
+  function showAnalysisSubview(which) {
+    $('interpreted-view').style.display = which==='interpreted' ? 'block' : 'none';
+    $('raw-view').style.display = which==='raw' ? 'block' : 'none';
+    $('nav-interpreted-btn').classList.toggle('active', which==='interpreted');
+    $('nav-raw-btn').classList.toggle('active', which==='raw');
+    renderCurrentAnalysisSubview();
+  }
+  function renderCurrentAnalysisSubview() {
+    const trialName = $('trial-select').value;
+    const record = trialName && currentAssessment ? currentAssessment.trials[trialName] : null;
+    if (!record) return;
+    if ($('nav-interpreted-btn').classList.contains('active')) ResultsUI.renderInterpretedView($('interpreted-view'), record);
+    else ResultsUI.renderRawView($('raw-view'), record);
+  }
+  function refreshTrialAnalysisView() {
+    if (!currentAssessment) return;
+    ResultsUI.populateTrialSelect($('trial-select'), currentAssessment);
+    renderCurrentAnalysisSubview();
+  }
+  $('nav-interpreted-btn').onclick = () => showAnalysisSubview('interpreted');
+  $('nav-raw-btn').onclick = () => showAnalysisSubview('raw');
+  $('trial-select').onchange = () => { ResultsUI.setCurrentTrial($('trial-select').value); renderCurrentAnalysisSubview(); };
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
   if (pair.mode!=='camera') { const cc=$('checklist-card'); if (cc) cc.style.display='none'; } else { currentAssessment=loadAssessment(); renderChecklist(); selectNextIncompleteTrial(); }
   renderPairing(); diagnostics(); drawGauge(); setupInstall();

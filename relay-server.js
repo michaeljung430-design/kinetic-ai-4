@@ -17,7 +17,27 @@ app.use('/api/analyze', (_request, response, next) => {
   next();
 });
 app.options('/api/analyze', (_request, response) => response.sendStatus(204));
+
+// Basic per-IP rate limit: this endpoint has no auth (it's called directly
+// from a public web page) and forwards to a billed OpenAI key, so an
+// unmetered endpoint is a real cost-abuse risk. This isn't a security
+// boundary against a determined attacker, just a cheap guard against casual
+// or scripted abuse of the open URL.
+const analyzeRequestLog = new Map();
+const ANALYZE_RATE_WINDOW_MS = 60_000;
+const ANALYZE_RATE_MAX = 10;
+function isRateLimited(ip) {
+  const now = Date.now();
+  const recent = (analyzeRequestLog.get(ip) || []).filter(t => now - t < ANALYZE_RATE_WINDOW_MS);
+  recent.push(now);
+  analyzeRequestLog.set(ip, recent);
+  return recent.length > ANALYZE_RATE_MAX;
+}
 app.post('/api/analyze', async (request, response) => {
+  const ip = request.headers['x-forwarded-for']?.split(',')[0].trim() || request.socket.remoteAddress;
+  if (isRateLimited(ip)) {
+    return response.status(429).json({ error: 'Too many analysis requests from this address. Please wait a minute and try again.' });
+  }
   const assessment = request.body;
   if (!assessment || !Array.isArray(assessment.trials)) {
     return response.status(400).json({ error: 'Request body must be a completed assessment JSON with a trials array.' });
@@ -76,6 +96,17 @@ websocketServer.on('connection', socket => {
       role = message.role;
       socket.role = role;
       const room = roomFor(session);
+      // A new connection with a role already present in the room replaces the
+      // old one (e.g. a phone reconnecting after a dropped WiFi connection),
+      // instead of both staying joined and silently interleaving data from two
+      // physical devices into the same trial.
+      for (const existing of [...room]) {
+        if (existing.role === role) {
+          room.delete(existing);
+          send(existing, { type: 'error', message: 'Replaced by a new connection with the same role.' });
+          existing.close();
+        }
+      }
       // Tell the new joiner about everyone already in the room (it would
       // otherwise never learn about a peer that connected before it did).
       for (const peer of room) send(socket, { type: 'peer', role: peer.role, connected: true });

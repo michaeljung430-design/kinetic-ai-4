@@ -3,7 +3,7 @@
 // being loaded, and on a `$` (getElementById) + `escapeHtml` helper being
 // present in the enclosing page scope (passed in via ResultsUI.init).
 (function (global) {
-  let $, escapeHtml, getAssessment = () => null, currentTrialName = null, rawCache = null, replayState = null;
+  let $, escapeHtml, getAssessment = () => null, currentTrialName = null, rawCache = null, replayState = null, rawViewGeneration = 0;
 
   // ---- Small render helpers ----
   function metricGrid(items) {
@@ -19,7 +19,7 @@
     const allPts = seriesList.flatMap(s => s.samples || []);
     const allT = allPts.map(p => p.t);
     const allV = allPts.map(p => p.value).filter(v => v != null);
-    if (!allT.length || !allV.length) { ctx.fillStyle = '#94a3b8'; ctx.font = '12px system-ui'; ctx.fillText('No data available for this trial.', 10, h / 2); return; }
+    if (!allT.length || !allV.length) { ctx.fillStyle = '#707c8c'; ctx.font = '12px system-ui'; ctx.fillText('No data available for this trial.', 10, h / 2); return; }
     const tMin = 0, tMax = Math.max(...allT, 1);
     const vMin = Math.min(...allV), vMax = Math.max(...allV);
     const vRange = (vMax - vMin) || 1;
@@ -65,7 +65,7 @@
       const canvas = $(id); if (!canvas) return;
       const ctx = canvas.getContext('2d'); const w = canvas.width, h = canvas.height;
       ctx.clearRect(0, 0, w, h);
-      if (!points.length) { ctx.fillStyle = '#94a3b8'; ctx.fillText('No data', 10, h / 2); return; }
+      if (!points.length) { ctx.fillStyle = '#707c8c'; ctx.fillText('No data', 10, h / 2); return; }
       const xs = points.map(p => p.x), ys = points.map(p => p.y);
       const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
       const rangeX = (maxX - minX) || 1, rangeY = (maxY - minY) || 1, pad = 16;
@@ -73,8 +73,8 @@
       ctx.strokeStyle = '#0f9488'; ctx.lineWidth = 1.4; ctx.beginPath();
       points.forEach((p, i) => { const x = xOf(p.x), y = yOf(p.y); if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); });
       ctx.stroke();
-      ctx.fillStyle = '#f2b134'; ctx.beginPath(); ctx.arc(xOf(xs[0]), yOf(ys[0]), 4, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#ff5f7e'; ctx.beginPath(); ctx.arc(xOf(xs[xs.length - 1]), yOf(ys[ys.length - 1]), 4, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#178a4c'; ctx.beginPath(); ctx.arc(xOf(xs[0]), yOf(ys[0]), 4, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#c22a2a'; ctx.beginPath(); ctx.arc(xOf(xs[xs.length - 1]), yOf(ys[ys.length - 1]), 4, 0, Math.PI * 2); ctx.fill();
     }, 0);
     return `<div class="chart-block"><small>Sway path (2D, stabilometry-style; green=start, red=end)</small><canvas id="${id}" width="300" height="240" style="width:100%;max-width:300px;height:240px;background:#fbfbfc;border-radius:10px"></canvas></div>`;
   }
@@ -103,6 +103,7 @@
     ])}</div>`;
     html += `<div class="movement-summary"><strong>Movement Summary</strong><ul>${(r.movement_summary || []).map(s => `<li>${escapeHtml(s)}</li>`).join('')}</ul></div>`;
 
+    html += `<h4 class="results-group-heading">Balance &amp; Movement</h4>`;
     html += regionSection('Balance & Stability', metricGrid([
       ['Total sway path', fmt(r.balance_stability.total_sway_path, ' units', 3)],
       ['Sway velocity', fmt(r.balance_stability.sway_velocity, ' units/s', 3)],
@@ -113,6 +114,14 @@
       + chartCard('Anterior/posterior sway over time', [{ samples: r.balance_stability.anterior_posterior_sway.samples, color: '#f2b134' }], 'normalized units')
       + swayPathCard(r.balance_stability.body_center_path), true);
 
+    html += regionSection('Events Timeline', r.events_timeline.length ? `<ul class="events-list">${r.events_timeline.map(e => `<li><button class="event-jump" data-t="${e.timestamp_seconds}">${e.timestamp_seconds.toFixed(1)}s</button> — ${escapeHtml(e.description)}</li>`).join('')}</ul>` : '<p>No notable events detected in this trial.</p>');
+
+    html += regionSection('Trial-Thirds Trend', `
+      <table class="summary-table"><thead><tr><th>Metric</th><th>Early (0–${r.thirds_analysis.windows.early[1].toFixed(1)}s)</th><th>Middle</th><th>Late (${r.thirds_analysis.windows.late[0].toFixed(1)}–${r.thirds_analysis.windows.late[1].toFixed(1)}s)</th></tr></thead><tbody>
+      ${Object.entries(r.thirds_analysis.metrics).map(([name, w]) => `<tr><td>${escapeHtml(name.replace(/_/g, ' '))}</td><td>mean ${fmt(w.early.mean, '', 3)}, std ${fmt(w.early.std, '', 3)}</td><td>mean ${fmt(w.middle.mean, '', 3)}, std ${fmt(w.middle.std, '', 3)}</td><td>mean ${fmt(w.late.mean, '', 3)}, std ${fmt(w.late.std, '', 3)}</td></tr>`).join('')}
+      </tbody></table>`);
+
+    html += `<h4 class="results-group-heading">Body Regions</h4>`;
     html += regionSection('Head & Neck', metricGrid([
       ['Mean head tilt', fmt(r.head_neck.mean_tilt, '°')], ['Range', fmt(r.head_neck.range, '°')], ['Variability', fmt(r.head_neck.std, '°')],
     ]) + `<p style="font-size:.82rem">${escapeHtml(r.head_neck.confidence_note)}</p>` + chartCard('Head tilt over time', [{ samples: r.head_neck.head_tilt.samples }], 'degrees'));
@@ -157,18 +166,12 @@
     }
     html += regionSection('Ankles / Feet', `<div class="split-row">${ankleDetail('left', r.ankles_feet.left)}${ankleDetail('right', r.ankles_feet.right)}</div>${metricGrid([['Mean stance width', fmt(r.ankles_feet.stance_width.mean, ' units', 3)]])}`);
 
+    html += `<h4 class="results-group-heading">Comparisons &amp; Quality</h4>`;
     html += regionSection('Symmetry', `
       <table class="summary-table"><thead><tr><th>Measurement</th><th>Left</th><th>Right</th><th>Difference</th><th>Symmetry index</th></tr></thead><tbody>
       <tr><td>Min knee angle (flexion)</td><td>${fmt(r.symmetry.knee_flexion.left, '°')}</td><td>${fmt(r.symmetry.knee_flexion.right, '°')}</td><td>${fmt(r.symmetry.knee_flexion.difference, '°')}</td><td>${fmt(r.symmetry.knee_flexion.symmetry_index, '%')}</td></tr>
       <tr><td>Knee range of motion</td><td>${fmt(r.symmetry.knee_rom.left, '°')}</td><td>${fmt(r.symmetry.knee_rom.right, '°')}</td><td>${fmt(r.symmetry.knee_rom.difference, '°')}</td><td>${fmt(r.symmetry.knee_rom.symmetry_index, '%')}</td></tr>
       <tr><td>Foot corrections</td><td>${r.symmetry.foot_corrections.left}</td><td>${r.symmetry.foot_corrections.right}</td><td>${r.symmetry.foot_corrections.difference}</td><td>—</td></tr>
-      </tbody></table>`);
-
-    html += regionSection('Events Timeline', r.events_timeline.length ? `<ul class="events-list">${r.events_timeline.map(e => `<li><button class="event-jump" data-t="${e.timestamp_seconds}">${e.timestamp_seconds.toFixed(1)}s</button> — ${escapeHtml(e.description)}</li>`).join('')}</ul>` : '<p>No notable events detected in this trial.</p>');
-
-    html += regionSection('Trial-Thirds Trend', `
-      <table class="summary-table"><thead><tr><th>Metric</th><th>Early (0–${r.thirds_analysis.windows.early[1].toFixed(1)}s)</th><th>Middle</th><th>Late (${r.thirds_analysis.windows.late[0].toFixed(1)}–${r.thirds_analysis.windows.late[1].toFixed(1)}s)</th></tr></thead><tbody>
-      ${Object.entries(r.thirds_analysis.metrics).map(([name, w]) => `<tr><td>${escapeHtml(name.replace(/_/g, ' '))}</td><td>mean ${fmt(w.early.mean, '', 3)}, std ${fmt(w.early.std, '', 3)}</td><td>mean ${fmt(w.middle.mean, '', 3)}, std ${fmt(w.middle.std, '', 3)}</td><td>mean ${fmt(w.late.mean, '', 3)}, std ${fmt(w.late.std, '', 3)}</td></tr>`).join('')}
       </tbody></table>`);
 
     html += regionSection('Measurement Quality', metricGrid([
@@ -213,8 +216,10 @@
 
   // ---- Raw Results ----
   async function renderRawView(container, record) {
+    const generation = ++rawViewGeneration;
     container.innerHTML = '<p>Loading raw data…</p>';
     const raw = await RawStore.loadRawTrial(record.trial_id).catch(() => null);
+    if (generation !== rawViewGeneration) return;
     if (!raw || !raw.cameraFrames?.length) { container.innerHTML = '<p>No raw data stored for this trial (it may predate this feature, or storage may be unavailable in this browser).</p>'; return; }
     rawCache = raw;
     const frames = raw.cameraFrames;
@@ -226,7 +231,7 @@
         <button id="raw-export-json" class="outline">Export JSON</button>
       </div>
       <div class="replay-panel">
-        <div class="stage" id="replay-stage" style="max-width:360px;aspect-ratio:3/3.3"><canvas id="replay-canvas" width="480" height="540" style="width:100%;height:100%"></canvas></div>
+        <div class="stage replay-stage" id="replay-stage"><canvas id="replay-canvas" width="480" height="540" style="width:100%;height:100%"></canvas></div>
         <div class="replay-controls">
           <button id="replay-back" class="outline">⏮</button>
           <button id="replay-play" class="outline">▶ Play</button>
@@ -262,13 +267,13 @@
         if (!show) return null;
         let cells = [i, f.timestamp_seconds.toFixed(3)];
         for (const p of points) for (const ax of axes) { const v = f.landmarks[p]?.[ax]; cells.push(v == null ? '—' : (typeof v === 'number' ? v.toFixed(4) : v)); }
-        return `<tr>${cells.map(c => `<td>${c}</td>`).join('')}</tr>`;
+        return `<tr>${cells.map(c => `<td>${escapeHtml(String(c))}</td>`).join('')}</tr>`;
       }).filter(Boolean);
       tbody.innerHTML = rows.slice(0, 500).join('') + (rows.length > 500 ? `<tr><td colspan="${cols.length}">…and ${rows.length - 500} more frames (showing first 500; export CSV for the full set).</td></tr>` : '');
     }
     function renderRawChart() {
       const point = $('raw-chart-point').value;
-      const series = ['x', 'y', 'z', 'confidence'].map((ax, i) => ({ samples: frames.map(f => ({ t: f.timestamp_seconds, value: f.landmarks[point]?.[ax] ?? null })), color: ['#0f9488', '#f2b134', '#7c8798', '#ff5f7e'][i] }));
+      const series = ['x', 'y', 'z', 'confidence'].map((ax, i) => ({ samples: frames.map(f => ({ t: f.timestamp_seconds, value: f.landmarks[point]?.[ax] ?? null })), color: ['#0f9488', '#f2b134', '#707c8c', '#c22a2a'][i] }));
       $('raw-chart-holder').innerHTML = chartCard(`${point.replace(/_/g, ' ')}: X (teal), Y (yellow), Z (gray), Confidence (pink)`, series, '');
     }
     $('raw-filter-point').onchange = renderTable; $('raw-filter-axis').onchange = renderTable; $('raw-filter-confidence').oninput = renderTable;
@@ -294,6 +299,7 @@
   const POSE_EDGES = [[11, 12], [11, 13], [13, 15], [12, 14], [14, 16], [11, 23], [12, 24], [23, 24], [23, 25], [25, 27], [27, 29], [27, 31], [24, 26], [26, 28], [28, 30], [28, 32], [0, 11], [0, 12]];
 
   function setupReplay(frames) {
+    if (replayState) clearTimeout(replayState.timer);
     replayState = { frames, index: 0, playing: false, speed: 1, timer: null };
     drawReplayFrame(0);
     $('replay-scrub').oninput = () => { replayPause(); replayState.index = +$('replay-scrub').value; drawReplayFrame(replayState.index); };

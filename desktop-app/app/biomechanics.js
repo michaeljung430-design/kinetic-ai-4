@@ -107,7 +107,6 @@
 
   // abs(left-right) / avg(|left|,|right|) * 100. Returns null if both are null.
   function calculateSymmetry(left, right) {
-    if (left == null && right == null) return null;
     if (left == null || right == null) return null;
     const denom = (Math.abs(left) + Math.abs(right)) / 2;
     if (!denom) return 0;

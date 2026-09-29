@@ -62,6 +62,13 @@ function attachRelay(server) {
         session = message.session; role = message.role;
         socket.role = role;
         const room = roomFor(rooms, session);
+        for (const existing of [...room]) {
+          if (existing.role === role) {
+            room.delete(existing);
+            send(existing, { type: 'error', message: 'Replaced by a new connection with the same role.' });
+            existing.close();
+          }
+        }
         for (const peer of room) send(socket, { type: 'peer', role: peer.role, connected: true });
         room.add(socket);
         send(socket, { type: 'joined', session, role });

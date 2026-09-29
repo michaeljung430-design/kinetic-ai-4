@@ -185,7 +185,6 @@
     const numeric = key => visibleRows.map(r => r[key]);
     const trunkVals = col('trunk'), pelvisVals = col('pelvisTilt').map(Math.abs), shoulderVals = col('shoulderTilt').map(Math.abs), headVals = col('head');
     const leftKneeVals = col('leftKnee'), rightKneeVals = col('rightKnee');
-    const hipXVals = col('hipX') || visibleRows.map(r => r.hip.x).filter(v => v != null);
     const hipX = visibleRows.map(r => r.hip.x).filter(v => v != null);
     const hipY = visibleRows.map(r => r.hip.y).filter(v => v != null);
 
@@ -360,7 +359,7 @@
       sway_velocity_change: diff(before.phone_balance.mean_sway_velocity, after.phone_balance.mean_sway_velocity),
       trunk_lean_change: diff(before.camera_posture.trunk.mean_lean, after.camera_posture.trunk.mean_lean),
       pelvic_tilt_change: diff(before.camera_posture.pelvis.mean_tilt, after.camera_posture.pelvis.mean_tilt),
-      corrective_movement_change: (before.phone_balance.large_corrections ?? 0) - (after.phone_balance.large_corrections ?? 0) === 0 ? 0 : (after.phone_balance.large_corrections ?? null) - (before.phone_balance.large_corrections ?? null),
+      corrective_movement_change: diff(before.phone_balance.large_corrections, after.phone_balance.large_corrections),
       touchdown_change: (before.single_leg_metrics.opposite_foot_touchdowns != null && after.single_leg_metrics.opposite_foot_touchdowns != null) ? after.single_leg_metrics.opposite_foot_touchdowns - before.single_leg_metrics.opposite_foot_touchdowns : null,
     };
   }

@@ -201,7 +201,7 @@
 
     // ---- Symmetry ----
     const symmetry = {
-      knee_flexion: { left: right_knee.min_angle != null ? left_knee.min_angle : null, right: right_knee.min_angle, difference: (left_knee.min_angle != null && right_knee.min_angle != null) ? round(left_knee.min_angle - right_knee.min_angle) : null, symmetry_index: B.calculateSymmetry(left_knee.min_angle, right_knee.min_angle) != null ? round(B.calculateSymmetry(left_knee.min_angle, right_knee.min_angle)) : null },
+      knee_flexion: { left: left_knee.min_angle, right: right_knee.min_angle, difference: (left_knee.min_angle != null && right_knee.min_angle != null) ? round(left_knee.min_angle - right_knee.min_angle) : null, symmetry_index: B.calculateSymmetry(left_knee.min_angle, right_knee.min_angle) != null ? round(B.calculateSymmetry(left_knee.min_angle, right_knee.min_angle)) : null },
       knee_rom: { left: left_knee.angle_range, right: right_knee.angle_range, difference: (left_knee.angle_range != null && right_knee.angle_range != null) ? round(left_knee.angle_range - right_knee.angle_range) : null, symmetry_index: B.calculateSymmetry(left_knee.angle_range, right_knee.angle_range) != null ? round(B.calculateSymmetry(left_knee.angle_range, right_knee.angle_range)) : null },
       foot_corrections: { left: ankles_feet.left.correction_count, right: ankles_feet.right.correction_count, difference: ankles_feet.left.correction_count - ankles_feet.right.correction_count },
     };

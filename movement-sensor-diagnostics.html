@@ -238,6 +238,7 @@
       <strong>Assessment Results (AI Summary)</strong>
       <p id="results-status">Complete all six trials to see your AI-generated analysis here.</p>
       <div id="results-body"></div>
+      <div id="failed-history-list"></div>
     </section>
     <section class="card">
       <strong>Trial Motion Analysis</strong>
@@ -574,6 +575,38 @@
       saveToHistory(assessmentJson,null);
     }
     localStorage.removeItem('assessment-current');
+    renderFailedHistoryList();
+  }
+  function renderFailedHistoryList() {
+    const history=loadHistory();
+    const pending=history.map((h,i)=>({h,i})).filter(x=>!x.h.analysis);
+    const el=$('failed-history-list');
+    if (!el) return;
+    if (!pending.length) { el.innerHTML=''; return; }
+    el.innerHTML=`<div class="movement-summary"><strong>Saved assessments awaiting AI analysis</strong><ul>${pending.map(({h,i})=>`<li>${new Date(h.savedAt).toLocaleString()} — <button class="outline retry-ai-btn" data-idx="${i}">Retry AI Analysis</button></li>`).join('')}</ul></div>`;
+    el.querySelectorAll('.retry-ai-btn').forEach(btn=>btn.onclick=()=>retryAiAnalysis(+btn.dataset.idx));
+  }
+  async function retryAiAnalysis(index) {
+    const history=loadHistory();
+    const entry=history[index];
+    if (!entry) return;
+    $('results-status').textContent='Retrying AI analysis on a previously saved assessment…';
+    $('results-body').innerHTML='';
+    try {
+      const aiPayload={...entry.assessment,trials:entry.assessment.trials.map(t=>t.interpreted?{...t,interpreted:Interpretation.stripTimeSeriesForAI(t.interpreted)}:t)};
+      const response=await fetch(`${PUBLIC_BASE}/api/analyze`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(aiPayload)});
+      if (!response.ok) throw new Error(`Server responded ${response.status}`);
+      const analysis=await response.json();
+      renderComparisons(entry.assessment.comparisons);
+      renderAnalysis(analysis);
+      history[index].analysis=analysis;
+      try { localStorage.setItem('assessment-history', JSON.stringify(history)); } catch (error) { log(`Could not update saved history: ${error.message}`,'warn'); }
+      $('results-status').textContent='AI analysis complete for the retried assessment.';
+    } catch (error) {
+      $('results-status').textContent=`Retry failed: ${error.message}`;
+      log(`Retry AI analysis failed — ${error.message}`,'warn');
+    }
+    renderFailedHistoryList();
   }
   function isStandaloneApp() { return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true; }
   function isIOS() { return /iP(hone|ad|od)/.test(navigator.userAgent); }
@@ -601,7 +634,8 @@
     $('nav-results-btn').classList.toggle('active', view==='results');
   }
   $('nav-home-btn').onclick = () => showView('home');
-  $('nav-results-btn').onclick = () => { showView('results'); refreshTrialAnalysisView(); };
+  $('nav-results-btn').onclick = () => { showView('results'); refreshTrialAnalysisView(); renderFailedHistoryList(); };
+  renderFailedHistoryList();
   ResultsUI.init({ $, escapeHtml, getAssessment: () => currentAssessment });
   function showAnalysisSubview(which) {
     $('interpreted-view').style.display = which==='interpreted' ? 'block' : 'none';

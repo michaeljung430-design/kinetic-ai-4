@@ -542,11 +542,6 @@
     refreshTrialAnalysisView();
     setTimeout(()=>{ renderChecklist(); selectNextIncompleteTrial(); },1200);
   }
-  function renderComparisons(comparisons) {
-    const el=document.createElement('div');
-    el.innerHTML=`<strong>Measured Comparisons</strong><pre style="white-space:pre-wrap;font-size:.8rem;overflow-x:auto">${escapeHtml(JSON.stringify(comparisons,null,2))}</pre>`;
-    $('results-body').append(el);
-  }
   function renderAnalysis(analysis) {
     const el=document.createElement('div');
     el.innerHTML=`<dl><dt>Clinician summary</dt><dd>${escapeHtml(analysis.clinician_summary||'—')}</dd><dt>Patient summary</dt><dd>${escapeHtml(analysis.patient_summary||'—')}</dd><dt>Data quality</dt><dd>${escapeHtml(analysis.data_quality?.overall_quality||'—')}</dd></dl>${renderList('Balance findings',analysis.balance_findings)}${renderList('Postural findings',analysis.postural_findings)}${renderList('Single-leg findings',analysis.single_leg_findings)}${renderList('Left/right asymmetries',analysis.left_right_asymmetries)}${renderList('Items for PT review',analysis.items_for_pt_review)}`;
@@ -560,7 +555,6 @@
     $('results-body').innerHTML='';
     const trials=Assessment.TRIALS.map(t=>currentAssessment.trials[t.trial_name]);
     const assessmentJson=Assessment.buildAssessmentJSON({assessmentId:currentAssessment.assessment_id,patientId:null,date:currentAssessment.date,assessmentNumber:loadHistory().length+1,trials});
-    renderComparisons(assessmentJson.comparisons);
     try {
       const aiPayload={...assessmentJson,trials:assessmentJson.trials.map(t=>t.interpreted?{...t,interpreted:Interpretation.stripTimeSeriesForAI(t.interpreted)}:t)};
       const response=await fetch(`${PUBLIC_BASE}/api/analyze`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(aiPayload)});
@@ -597,7 +591,6 @@
       const response=await fetch(`${PUBLIC_BASE}/api/analyze`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(aiPayload)});
       if (!response.ok) throw new Error(`Server responded ${response.status}`);
       const analysis=await response.json();
-      renderComparisons(entry.assessment.comparisons);
       renderAnalysis(analysis);
       history[index].analysis=analysis;
       try { localStorage.setItem('assessment-history', JSON.stringify(history)); } catch (error) { log(`Could not update saved history: ${error.message}`,'warn'); }

@@ -555,7 +555,8 @@
     const assessmentJson=Assessment.buildAssessmentJSON({assessmentId:currentAssessment.assessment_id,patientId:null,date:currentAssessment.date,assessmentNumber:loadHistory().length+1,trials});
     renderComparisons(assessmentJson.comparisons);
     try {
-      const response=await fetch(`${PUBLIC_BASE}/api/analyze`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(assessmentJson)});
+      const aiPayload={...assessmentJson,trials:assessmentJson.trials.map(t=>t.interpreted?{...t,interpreted:Interpretation.stripTimeSeriesForAI(t.interpreted)}:t)};
+      const response=await fetch(`${PUBLIC_BASE}/api/analyze`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(aiPayload)});
       if (!response.ok) throw new Error(`Server responded ${response.status}`);
       const analysis=await response.json();
       renderAnalysis(analysis);

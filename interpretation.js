@@ -317,7 +317,25 @@
     return statements;
   }
 
-  global.Interpretation = { analyzeTrial, calculateEyesOpenClosedComparison, calculateLeftRightSingleLegComparison, compareToBaseline, generateMovementSummary, REGION_LANDMARKS };
+  // The AI layer must only see the calculated summary metrics (means, ranges,
+  // peaks, symmetry, events, thirds-trend, movement_summary text) — never the
+  // per-frame time series kept for the in-app charts/replay. Those arrays
+  // (identified by key name, since they're the only array-shaped values in
+  // this tree) are stripped from a deep copy before an interpreted result is
+  // sent anywhere off-device.
+  function stripTimeSeriesForAI(result) {
+    if (!result || typeof result !== 'object') return result;
+    const clone = JSON.parse(JSON.stringify(result));
+    (function strip(node) {
+      if (!node || typeof node !== 'object' || Array.isArray(node)) return;
+      delete node.samples;
+      delete node.body_center_path;
+      for (const key in node) strip(node[key]);
+    })(clone);
+    return clone;
+  }
+
+  global.Interpretation = { analyzeTrial, calculateEyesOpenClosedComparison, calculateLeftRightSingleLegComparison, compareToBaseline, generateMovementSummary, stripTimeSeriesForAI, REGION_LANDMARKS };
 })(typeof window !== 'undefined' ? window : globalThis);
 
 if (typeof module !== 'undefined' && module.exports) {

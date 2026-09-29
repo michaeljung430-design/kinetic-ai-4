@@ -379,7 +379,13 @@
   function saveCurrentAssessment() { try { localStorage.setItem('assessment-current', JSON.stringify(currentAssessment)); } catch {} }
   function completedTrialNames() { return Object.keys(currentAssessment.trials).filter(k => currentAssessment.trials[k]?.status === 'completed'); }
   function loadHistory() { try { return JSON.parse(localStorage.getItem('assessment-history') || '[]'); } catch { return []; } }
-  function saveToHistory(assessmentJson, analysis) { const history=loadHistory(); history.push({ assessment: assessmentJson, analysis, savedAt: new Date().toISOString() }); try { localStorage.setItem('assessment-history', JSON.stringify(history)); } catch {} }
+  function saveToHistory(assessmentJson, analysis) {
+    const history=loadHistory();
+    const leanAssessment={...assessmentJson,trials:assessmentJson.trials.map(t=>t.interpreted?{...t,interpreted:Interpretation.stripTimeSeriesForAI(t.interpreted)}:t)};
+    history.push({ assessment: leanAssessment, analysis, savedAt: new Date().toISOString() });
+    try { localStorage.setItem('assessment-history', JSON.stringify(history)); }
+    catch (error) { log(`Could not save assessment to history: ${error.message}`,'warn'); }
+  }
   function escapeHtml(s) { const d=document.createElement('div'); d.textContent = s==null ? '' : String(s); return d.innerHTML; }
   function renderList(title, items) { if (!items || !items.length) return ''; return `<strong>${escapeHtml(title)}</strong><ul>${items.map(i=>`<li>${escapeHtml(typeof i==='string'?i:JSON.stringify(i))}</li>`).join('')}</ul>`; }
   function trialIcon(trial) {
